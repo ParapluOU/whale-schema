@@ -1,0 +1,6 @@
+StringAlias1: String
+StringAlias2: String
+StringAlias2: StringAlias1
+StringAlias3: StringAlias2
+
+AssignedPersonIds: [IDRef]

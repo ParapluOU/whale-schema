@@ -1,0 +1,31 @@
+{
+  "version": [
+    2,
+    3,
+    2
+  ],
+  "simpleTypes": [
+    {
+      "localName": "date",
+      "variety": "builtin"
+    }
+  ],
+  "attributes": [],
+  "contentModels": [
+    {
+      "type": "empty",
+      "maxOccurs": 1,
+      "minOccurs": 1
+    }
+  ],
+  "elements": [
+    {
+      "contentModelRef": 0,
+      "simpleTypeRef": 0,
+      "attributeRefs": [],
+      "localName": "test",
+      "namespaceURI": null,
+      "isMixed": true
+    }
+  ]
+}

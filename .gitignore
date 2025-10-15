@@ -1,0 +1,8 @@
+/whas/target/
+/node_modules/
+/target/
+/whas/debug.log
+/*.log
+.idea/copilot
+/fonto.lic
+fonto.lic

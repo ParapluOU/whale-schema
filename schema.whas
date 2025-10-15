@@ -1,0 +1,211 @@
+//
+// WORK PLAN DOCUMENT
+//
+#workplan {
+    #title?: String
+    #identifier?: String
+
+    // container for metadata about the project planning
+    #meta? {
+        #project? {
+            // optional project name
+            #name?: String
+
+            // optional project start date
+            #start?: Date
+
+            // optional project end date
+            #end?: Date
+
+            // optional project duration data
+            #duration? {
+                // project duration in terms of time
+                #time?: Estimate
+
+                // optional project duration accounted in money terms
+                #money?: Price
+            }
+        }
+    }
+
+    // introductory text about the project
+    #introduction?: Text
+
+    // general top-level assumptions
+    #assumptions?: List
+
+    // list of nesteable milestones
+    #milestone+: Milestone
+
+    // table of deliverables
+    #deliverables? x{
+        #deliverable*: {
+            #title: String,
+            #description: Text
+        }
+    }
+
+    // list of supplied materials by customer
+    #supplied-material? x{
+        #material*: {
+            #description: String,
+            #due: Date
+        }
+    }
+
+    // list of costs per role
+    #resources? x{
+        #rates?: {
+            #rate*: {
+                #role: String
+                #amount: Price
+            }
+        }
+
+        // todo: cost breakdown table
+    }
+
+    #customer-responsibilities?: Text
+    #contractor-responsibilities?: Text
+    #terms-conditions?: Text
+}
+
+
+//
+// ESTIMATIONS DOCUMENT
+//
+#estimation {
+    #title?: String
+    #identifier?: String
+
+    // optional accompanying text
+    #description*: Text
+
+    // allow defining weights per person for calculations
+    #people? {
+        #person*: Person
+    }
+
+    // general top-level assumptions
+    #assumptions?: List
+
+    // list of nesteable milestones
+    #milestone+: Milestone
+}
+
+
+//
+// COMPONENTS
+//
+
+
+Price {
+    // optional additional text
+    #desc?: String
+
+    // how many hours, days etc
+    #amount: Double
+
+    // enumerations and inline type restrictions are defined by regex
+    #type: /eur|usd/
+}
+
+Person {
+    // the modifier/handicap someone has compared to a baseline of 1
+    // the hours calculated for a task should be weighted with this
+    // amount of this person is assigned
+    #modifier?: Float
+}
+
+
+// type definition for textual contents that can span
+// multiple paragraphs and supports lists
+Text x{
+    // ... mixed content
+    #list*: List
+}
+
+
+List {
+    #item+: ListItem
+}
+
+
+// a list item is a mixed content definition
+// that allows optional sublists
+ListItem x{
+    // ... mixed content here
+    #list?: List
+}
+
+
+// Milestone type definition
+Milestone {
+    // milestones must have titles
+    #title: String
+    // a milestone has an optional userstory
+    #userstory?: Text
+    // a milestone may have a task description
+    #taskdescription?: Text
+    // optional list of assumptions
+    #assumptions?: List
+
+    // finally, a milestone can either contain
+    // a nested submilestone, or a task list
+    ...?{
+        // either...
+        #milestone: Milestone
+
+        // or...
+        #tasks: TaskList
+    }
+}
+
+
+```
+    Possibly nesting list of tasks. Example:
+
+    <>
+        <task>
+            <description>buy bread</description>
+        </task>
+        <task>
+            <description>find eggs</description>
+            <subtasks>
+                <task>
+                    <description>call farmer</description>
+                </task>
+            </subtasks>
+        </task>
+        <task>
+            <description>get chicken</description>
+        </task>
+    </>
+```
+TaskList {
+    #task+: Task
+}
+
+
+// single Task that may contain subtasks
+// contains the @assigned attribute that can take multiple @id references
+// to people
+@assigned?: AssignedPersonIds
+Task {
+    #ticket?: URI
+    #description: String
+    #subtasks?: TaskList
+}
+
+AssignedPersonIds: [IDRef]
+
+Estimate {
+    // how many hours, days etc
+    #amount: Double
+
+    // enumerations and inline type restrictions are defined by regex
+    #type: TimeUnit
+}
+
+
+TimeUnit: /days|hours|person days/

@@ -1,0 +1,352 @@
+//$namespace: fonto/project-management
+
+/*
+    TODO:
+    - FAQ for estimations
+    - final deadline for project
+*/
+
+//
+// WORK PLAN DOCUMENT
+//
+#workplan {
+    #front {
+        #title?: String
+        #identifier?: String
+
+        // container for metadata about the project planning
+        #meta? {
+            #project? {
+                // optional project name
+                #name?: String
+
+                // optional project start date
+                #start?: Date
+
+                // optional project end date
+                #end?: Date
+
+                // optional project duration data
+                #duration? {
+                    // project duration in terms of time
+                    #time?: Estimate
+
+                    // optional project duration accounted in money terms
+                    #money?: Price
+                }
+            }
+        }
+
+        // introductory text about the project
+        #introduction?: Text
+    }
+
+    // high level reqs based on what a customer mentioned
+    #high-level-requirements? {
+        ...SectionHeader
+        #requirement*: Text
+    }
+
+    // general top-level assumptions
+    #assumptions? {
+        ...SectionHeader
+        #assumption*: Text
+    }
+
+    // list of nesteable milestones
+    #milestones?: Milestones
+
+    // table of deliverables
+    #deliverables?: Deliverables
+
+    // for open questions that shuold still be answered
+    #open-questions?: {
+        ...SectionHeader
+        #item*: {
+            #q: String,
+            #a?: Text
+        }
+    }
+
+    // list of supplied materials by customer
+    #supplied-material? x{
+        ...SectionHeader
+        #material*: {
+            #description: String,
+            #due: Date
+        }
+    }
+
+    // list of costs per role
+    #resources? x{
+        ...SectionHeader
+        #rates?: {
+            #rate*: {
+                #role: String
+                #amount: Price
+            }
+        }
+
+        // todo: cost breakdown table
+    }
+
+    #legal {
+        #customer-responsibilities?: Text
+        #contractor-responsibilities?: Text
+        #terms-conditions?: Text
+    }
+}
+
+SectionHeader {
+    #header: String
+}
+
+// todo: make Section generic with a type arg for its content
+
+// list of nesteable milestones
+Milestones x{
+    ...SectionHeader
+    #milestone*: Milestone
+}
+
+Deliverables x{
+    ...SectionHeader
+    #deliverable*: {
+        #title: String,
+        #description: Text
+    }
+}
+
+//
+// ESTIMATIONS DOCUMENT
+//
+#estimation {
+    #title?: String
+    #identifier?: String
+
+    // optional accompanying text
+    #description*: Text
+
+    // allow defining weights per person for calculations
+    #people? {
+        #person*: Person
+    }
+
+    // general top-level assumptions
+    #assumptions?: List
+
+    // list of nesteable milestones
+    #milestone*: Milestone
+}
+
+
+/*
+    Thierry Style Estimation Schema
+*/
+
+// main estimation document. for internal use to generate estimation data.
+// never sgared with custojer directly. used to generate estimates
+// per task or milestone to be used in the workplan
+#estimation2 {
+    // developer ID
+    @id: ID
+    #dev+: {
+        // developer name
+        #name?: String
+
+        // developer role
+        #role?: /architect|developer|ux designer/
+
+        // developer hourly rate
+        #rate?: +Int
+
+        #modifier?: Float
+    }
+
+    // an estimation process has a tasklist with subtasks
+    // task ID so references can be made for dependencies
+    @id: ID
+    #task+: {
+        // name of the high-level discrete thing to accomplish
+        // that will be broken down in smaller tasks/steps
+        #name: String
+
+        // Thierry puts this in an appended column
+        // we want to make this mandatory because we too often have the question
+        // "what what this task again"?
+        #description: String
+
+        // whether the high-level task should be optional
+        // like Fonto Review which we dont always sell
+        #optional: Bool
+
+        // whether this is a PM task
+        #non-technical: Bool
+
+        // lower level break down of domain
+        // task ID so references can be made for dependencies
+        @id: ID
+        #subtask+: {
+            #name: String
+
+            #assumption*: String
+
+            #comment*: String
+
+            // list of Task ID's listed as dependencies
+            #dependent-on*: [IDRef]
+
+            // for example, implementing tables
+            // todo: default value should be false
+            // todo: support AST and syntax in compiler
+            #optional?: Bool
+
+            // value that Fonto shoujld save to.
+            // this still allows us to use a custom element
+            // rendering to different units, like days or person days
+            #hours: +Int
+
+            // todo: support static value definitions
+            //#author-notice: "Have the description"
+
+            // whether the price is incurred for every separate
+            // item it is ordered by customer
+            #dynamic: Bool
+
+            // whether the time can be billed to the customer
+            #billable: Bool
+
+            // allow multiple people to open the document
+            // and enter their estimates in parralell
+            // (todo: does this need schema slicing/locking?)
+            #estimate-per-dev*: {
+                //#dev-id: IDRef
+                #hours: +Int
+                #justification?: String
+            }
+        }
+    }
+}
+
+
+//
+// COMPONENTS
+//
+
+
+Price {
+    // optional additional text
+    #desc?: String
+
+    // how many hours, days etc
+    #amount: Double
+
+    // enumerations and inline type restrictions are defined by regex
+    #type: /eur|usd/
+}
+
+Person {
+    // the modifier/handicap someone has compared to a baseline of 1
+    // the hours calculated for a task should be weighted with this
+    // amount of this person is assigned
+    #modifier?: Float
+}
+
+
+// type definition for textual contents that can span
+// multiple paragraphs and supports lists
+Text x{
+    // ... mixed content
+    #list*: List
+}
+
+
+List {
+    #item+: ListItem
+}
+
+
+// a list item is a mixed content definition
+// that allows optional sublists
+ListItem x{
+    // ... mixed content here
+    #list?: List
+}
+
+
+// Milestone type definition
+/*
+        A milestone is a significant point or event in a project that marks progress towards the completion of a specific goal or phase.
+        It represents a point in time rather than a tangible output.
+        Milestones are often used to track and measure progress, mark important stages, and ensure that the project stays on schedule.
+        Examples of milestones include project kickoff, completion of a project phase, or reaching a certain percentage of completion.
+*/
+Milestone {
+    // milestones must have titles
+    #title: String
+    // a milestone has an optional userstory
+    #userstory?: Text
+    // a milestone may have a task description
+    #taskdescription?: Text
+    // optional list of assumptions
+    #assumptions?: List
+
+    // finally, a milestone can either contain
+    // a nested submilestone, or a task list
+    ...?{
+        // either...
+        #milestone: Milestone
+
+        // or...
+        #tasks: TaskList
+    }
+}
+
+
+```
+    Possibly nesting list of tasks. Example:
+
+    <>
+        <task>
+            <description>buy bread</description>
+        </task>
+        <task>
+            <description>find eggs</description>
+            <subtasks>
+                <task>
+                    <description>call farmer</description>
+                </task>
+            </subtasks>
+        </task>
+        <task>
+            <description>get chicken</description>
+        </task>
+    </>
+```
+TaskList {
+    #task+: Task
+}
+
+
+// single Task that may contain subtasks
+// contains the @assigned attribute that can take multiple @id references
+// to people
+@assigned?: AssignedPersonIds
+Task {
+    #ticket?: URI
+    #description: String
+    #subtasks?: TaskList
+}
+
+AssignedPersonIds: [IDRef]
+
+Estimate {
+    // how many hours, days etc
+    #amount: Double
+
+    // enumerations and inline type restrictions are defined by regex
+    #type: TimeUnit
+}
+
+
+TimeUnit: /days|hours|person days/

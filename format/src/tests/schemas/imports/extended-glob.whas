@@ -1,0 +1,5 @@
+import from "./glob/*" {
+    One,
+    Two,
+    Three
+}

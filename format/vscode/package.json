@@ -1,0 +1,25 @@
+{
+  "name": "whale-schema",
+  "displayName": "Whale Schema",
+  "description": "Simplified XML Schema",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "whas",
+      "aliases": ["Whale Schema", "whas"],
+      "extensions": [".whas"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "whas",
+      "scopeName": "source.whas",
+      "path": "./syntaxes/whas.tmLanguage.json"
+    }]
+  }
+}

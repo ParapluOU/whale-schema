@@ -1,0 +1,7 @@
+// definition of SimpleType
+#simpleRoot: String
+
+// Definition of ComplexType
+#complexRoot {
+    #childElement: String
+}

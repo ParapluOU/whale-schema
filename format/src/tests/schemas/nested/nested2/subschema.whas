@@ -1,0 +1,3 @@
+SubSchemaType {
+    #element: String
+}

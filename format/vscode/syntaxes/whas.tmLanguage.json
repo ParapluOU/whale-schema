@@ -1,0 +1,41 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Whale Schema",
+	"patterns": [
+		// {
+		// 	"include": "#keywords"
+		// },
+		{
+			"include": "#strings"
+		},
+		{
+            "name": "Element",
+            "match": "#([a-z0-9-])+",
+            "captures": {
+                "0": {
+                    "name": "keyword.element.whas"
+                }
+            }
+        },
+	],
+	"repository": {
+		// "keywords": {
+		// 	"patterns": [{
+		// 		"name": "keyword.control.whas",
+		// 		"match": "\\b(if|while|for|return)\\b"
+		// 	}]
+		// },
+		"strings": {
+			"name": "string.quoted.double.whas",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.whas",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.whas"
+}

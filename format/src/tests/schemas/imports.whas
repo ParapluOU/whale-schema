@@ -1,0 +1,14 @@
+// this file is for validating the AST.
+// all individual import features are tested using individual files in ./import
+
+import "./imports/*"
+
+import * from "./imports/*"
+
+import {} from "./imports/*"
+
+import {StringAlias1} from "./imports/*"
+
+import from "./imports/*" {
+    SubSchemaType
+}

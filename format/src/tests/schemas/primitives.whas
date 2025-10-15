@@ -1,0 +1,82 @@
+/*
+    "String"
+    | "URI"
+    | "Date"
+    | "DateTime"
+    | "DateTimestamp"
+    | "Time"
+    | "Duration"
+    | "Bool"
+    | "Boolean"
+    | "Int"
+    | "Integer"
+    | "Float"
+    | "Double"
+    | "Short"
+    | "Decimal"
+    | "ID"
+    | "IDRef"
+    | "[IDRef]"
+    | "IDRefs"
+    | "Lang"
+    | "Name"
+    | "NoColName"
+    | "-Int"
+    | "+Int"
+    | "Token"
+    | "NameToken"
+    | "[NameToken]"
+    | "NameTokens"
+*/
+
+// strings
+
+#text: String
+
+// bool
+#bool1: Boolean
+#bool2: Bool
+
+// ints
+
+#above-or-below-zero1: Integer
+#above-or-below-zero2: Int
+#neg-int: -Int
+#pos-int: +Int
+
+#float: Float
+#double: Double
+#short: Short
+#decimal: Decimal
+
+// IDs
+
+#ref: IDRef
+#refs1: [IDRef]
+#refs2: IDRefs
+
+#uri: URI
+
+// date time stuff
+
+#date: Date
+#datetime: DateTime
+#datetimestamp: DateTimestamp
+#time: Time
+#duration: Duration
+
+// lang
+
+#lang: Lang
+
+// name
+
+#name: Name
+#nocolname: NoColName
+
+// tokens
+
+#token: Token
+#nametoken: NameToken
+#nametokens1: [NameToken]
+#nametokens2: NameTokens

@@ -1,0 +1,336 @@
+//
+// SYMBOLS
+//
+
+sym_delim_md = _{ "```" }
+sym_delim_md_esc = _{ "$" }
+sym_delim_regex = _{ "/" }
+sym_delim_field = _{ "," }
+sym_delim_path1 = _{ "'" }
+sym_delim_path2 = _{ "\"" }
+sym_delim_comment_line = _{ NEWLINE }
+sym_args_open = _{ "(" }
+sym_args_close = _{ ")" }
+sym_block_open = _{ "{" }
+sym_block_close = _{ "}" }
+sym_range_open = _{ "[" }
+sym_range_close = _{ "]" }
+
+sym_comment = _{ "//" }
+sym_comment_wild_open = _{ "/*" }
+sym_comment_wild_close = _{ "*/" }
+sym_attr = _{ "@" }
+sym_element = _{ "#" }
+sym_splat = _{ "..." }
+sym_typing_assign = _{ ":" }
+sym_empty = _{ "" }
+sym_schema_var = _{ "$" }
+
+// generic symbols
+sym_mod_opt = { "?" }
+sym_mod_must = { "!" }
+sym_mod_any = { "*" }
+sym_mod_min1 = { "+" }
+sym_mod_range = _{ ".." }
+
+// keywords
+keyword_namespace = _{ "namespace" }
+keyword_import = _{ "import" }
+keyword_from = _{ "from" }
+keyword = { keyword_namespace | keyword_import | keyword_from }
+
+schema_variable_namespace = @{ sym_schema_var ~ keyword_namespace }
+
+file_start = _{ SOI }
+file_end = _{ EOI }
+
+//
+// MODULE-LEVEL DEFS
+//
+
+// top level schema file definition
+schema = { file_start ~ namespace? ~ comment* ~ import* ~ schema_item* ~ file_end}
+
+
+//
+// NAMESPACE
+//
+
+namespace = { schema_variable_namespace ~ sym_typing_assign ~ namespace_value }
+namespace_value = @{ (!NEWLINE ~ ANY)* }
+
+//
+// IMPORTS
+//
+
+// import * from "./other.whas"
+// import {Definition} from "./other.whas"
+// import {Definition, } from "./other.whas"
+// import from "./other.whas": {
+//
+// }
+
+/*
+
+    // import everything
+    import "./path"
+
+    // more explicit everything
+    import * from "./path"
+
+    // import selection
+    import {Definition} from "./other.whas"
+
+    // reverse import for when we have a long list and want to have comments
+    import from "./path" {
+        // with comment
+        Definition,
+
+        // with comment
+        GenericType(arg1, arg2)
+    }
+*/
+
+import = { import_extended | import_inline }
+
+import_inline = { keyword_import ~ (import_selector? ~ keyword_from)? ~ import_path }
+import_extended = { keyword_import ~ keyword_from? ~ import_path ~ import_selector }
+
+// either a wildcard import or a block with typenames
+import_selector = { (sym_mod_any | import_selector_block) }
+
+// block {} with typenames inside, delimited by commas with possible comments in between
+import_selector_block = { sym_block_open ~ (type_without_generic ~ (sym_delim_field ~ type_without_generic)*)? ~ sym_block_close }
+
+// path enclosed by single or double quotes
+import_path = { ((sym_delim_path1 ~ (!sym_delim_path1 ~ ANY)* ~ sym_delim_path1) | (sym_delim_path2 ~ (!sym_delim_path2 ~ ANY)* ~ sym_delim_path2)) }
+// import_path = { attr_item_str }
+
+//
+// ITEMS
+//
+
+schema_item = { element | typedef | comment }
+
+//
+// COMMENTS
+//
+
+// escape sequence when markdown comments are embedded in markdown text
+comment_md_esc_delim = @{ sym_delim_md_esc ~ "```" }
+
+// markdown comment
+comment_md = @{ sym_delim_md ~ (comment_md_esc_delim | (!sym_delim_md ~ ANY))* ~ sym_delim_md }
+
+// line comment
+comment_line = @{ sym_comment ~ (!NEWLINE ~ ANY)* }
+
+// wildcard comment: /* commenttt */
+comment_wild = @{ sym_comment_wild_open ~ (!sym_comment_wild_close ~ ANY)* ~ sym_comment_wild_close }
+
+// union of comment types
+comment = { comment_line | comment_md | comment_wild }
+
+//
+// ELEMENT DEFINITION
+//
+
+// #element: Type
+// #element { .. }
+element = { attributes ~ element_item }
+
+element_item = { element_with_type | element_with_block }
+
+// #element*?+
+element_assign = {ident_element ~ mod_duplicity?}
+
+// element declaration with Type:
+// - #element: Type(Arg, Arg)
+// - #element: Type()
+// - #element: Type
+element_with_type = { element_assign ~ sym_typing_assign ~ typing }
+element_with_block = { element_assign ~ sym_typing_assign? ~ block }
+
+//
+// ATTRS
+//
+
+attributes = { attrdef* }
+
+// the type definition of an attribute value type can only be a regex, or a
+// primitive, OR a block that allows defining a composite of primitives
+attrdef = { comment* ~ attr_assign ~ (sym_typing_assign ~ simple_compound_inline)? ~ comment_line? }
+
+// @attr?
+attr_assign = { ident_attr ~ sym_mod_opt? }
+
+// an inline compound definition of an attribute typing
+//      AttrDef: String + ID + "-" + /regex/.
+// todo: support generic types
+// simple_compound_inline = { attr_item ~ ((" + " | "+") ~ attr_item)* }
+simple_compound_inline = { (attr_item ~ ((" + " | "+") ~ attr_item)+) | attr_item }
+
+// definitiohn of type items that can be used to define the attribute value constraints.
+attr_item = { typename | type_regex | attr_item_str | typevar }
+
+// a string enclosed with one of the non-conflicting delimiters:
+// ' " ` %
+attr_item_str = @{
+    ("'" ~ (!"'" ~ ANY)* ~ "'")
+    | ("\"" ~ (!"\"" ~ ANY)* ~ "\"")
+    | ("`" ~ (!"`" ~ ANY)* ~ "`")
+    | ("%" ~ (!"%" ~ ANY)* ~ "%")
+}
+
+//
+// TYPES
+//
+
+// XSD SimpleType
+type_simple = { primitive | type_regex | simple_compound_inline }
+
+// a Type name that could contain a generic
+typename = { type_with_generic | type_without_generic }
+
+// the typename in element declarations can include a Regex definition
+typing = { typename | type_regex | typevar }
+
+// Type(Arg (, Arg))
+type_with_generic = { ident_type_nonprimitive ~ type_args }
+
+// Type(arg (, arg))
+type_with_vars = { ident_type_nonprimitive ~ typedef_vars }
+
+// Type
+type_without_generic = { ident_type } // could be primitive
+
+// rule for any delimiter in a regex declaration that does not indicate the ending of the regex
+type_regex = @{ sym_delim_regex ~ (!sym_delim_regex ~ ANY)+ ~ sym_delim_regex }
+
+typedef = { typedef_block | typedef_inline }
+
+// @assigned?: IDRefs
+// Task(desc) {
+//     #ticket?: URI
+//     #description: desc
+//     #subtasks?: TaskList
+// }
+typedef_block = { attributes ~ ident_type_nonprimitive ~ typedef_vars? ~ sym_typing_assign? ~ block }
+
+// TaskDesc: String
+typedef_inline = { ident_type_nonprimitive ~ typedef_vars? ~ sym_typing_assign ~ typedef_inline_typing }
+
+typedef_inline_typing = { typename | typevar | simple_compound_inline }
+
+// the 'desc' in: Task(desc) { .. }
+typevar = { ident_lowercase }
+
+// a type argument filled in, concretezised
+typearg = { typename }
+
+// todo: rename to type_vars for consistency
+// (arg1, arg2, arg-3)
+typedef_vars = { sym_args_open ~ (typevar ~ (sym_delim_field ~ typevar)*)? ~ sym_args_close }
+
+// todo: make <> instead?
+// (Arg1, Arg2, Arg3)
+type_args = { sym_args_open ~ (typearg ~ (sym_delim_field ~ typearg)*)? ~ sym_args_close }
+
+//
+// BLOCKS
+//
+
+// modifiers that can be prefixed to blocks.
+// the 'x' denotes mixed content;
+// the occurrence configures the element requirement ordering
+block_mods = { mod_mixed? ~ mod_occurrence? ~ mod_mixed? }
+
+// definition of a block that has element fields (optionally comma separated)
+block = { block_mods ~ sym_block_open ~ (block_item ~ sym_delim_field?)* ~ sym_block_close }
+
+block_item = { element | splat_block | splat_type | splat_generic_var | comment }
+
+//
+// SPLATS
+//
+
+// Milestone {
+//     // milestones must have titles
+//     #title: String
+//
+//     // finally, a milestone can either contain
+//     // a nested submilestone, or a task list
+//     ...?{
+//         // either...
+//         #milestone: Milestone
+//
+//         // or...
+//         #tasks: TaskList
+//     }
+// }
+splat_block = { sym_splat ~ block }
+
+// allow splatting a defined type that is not an inline Regex
+splat_type = { sym_splat ~ typename}
+
+// splat the argument name of a generic received from a typedef
+splat_generic_var = { sym_splat ~ typevar}
+
+//
+// MODIFIERS
+//
+mod_range = { sym_range_open ~ (mod_range_span | uint) ~ sym_range_close } // [x] or [x..y]
+mod_range_span = { uint ~ sym_mod_range ~ uint }
+mod_duplicity = { sym_mod_opt | sym_mod_any | sym_mod_min1 | mod_range }
+mod_occurrence = { sym_mod_opt | sym_mod_must }
+mod_mixed = { "x" }
+
+//
+// IDENTIFIER
+//
+// ex:
+//  - a
+//  - khsbvhbfksvf
+//  - 039474hhhh
+//  - dvsfj-vskj-55y6x
+//
+ident_lowercase = @{ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | ASCII_DIGIT | ("-" ~ (ASCII_ALPHA_LOWER | ASCII_DIGIT)))*}
+
+//
+// Capitalized identifier
+//
+// ex:
+//  - Type
+//  - List
+//  - SoMEcRaZyTyPe
+//
+ident_capitalized = @{ ASCII_ALPHA_UPPER ~ (ASCII_ALPHANUMERIC)* ~ !ASCII_ALPHANUMERIC}
+
+// the identifier for a Type, which can only be a Capitalized
+ident_type = { ident_type_nonprimitive | primitive }
+
+// identifier for a type that is not a core primitive
+ident_type_nonprimitive = { !primitive ~ ident_capitalized }
+
+// the identifier for an element, which should always start with the pound symbol
+ident_element = { sym_element ~ ident_lowercase }
+
+// identifier for attribute
+ident_attr = { sym_attr ~ ident_lowercase }
+
+ident = { ident_element | ident_attr | ident_type }
+
+//
+// DATA TYPES
+//
+
+// The optional rules WHITESPACE and COMMENT implement this behaviour.
+// If either (or both) are defined, they will be implicitly inserted at every sequence
+// and between every repetition (except in atomic rules).
+WHITESPACE = _{ WHITE_SPACE | "\t" | NEWLINE  }
+
+// positive integer type
+uint = { ASCII_DIGIT+ }
+
+// primitive types from XSD that we want to exclude from user definitions
+primitive = @{ ("String" | "URI" | "DateTimestamp" | "DateTime" | "Date" | "Time" | "Duration" | "Boolean" | "Bool" | "Integer" | "Int" | "Float" | "Double" | "Short" | "Decimal" | "[IDRef]" | "IDRefs" | "IDRef" | "ID" | "Lang" | "NoColName" | "-Int" | "+Int" | "Token" | "[NameToken]" | "NameTokens" | "NameToken" | "Name" ) ~ !ASCII_ALPHANUMERIC}

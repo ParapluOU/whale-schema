@@ -1,0 +1,10 @@
+{
+  "rootSchemas": {
+    "date.xsd": {
+      "packageName": "date-test",
+      "locations": [
+        "date-test"
+      ]
+    }
+  }
+}
