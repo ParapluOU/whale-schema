@@ -41,6 +41,11 @@ impl SourcedSchemaFile {
 
         own_types
     }
+
+    /// Count types across all schemas loaded by the manager
+    pub fn types_count(&self) -> usize {
+        self.manager.types_count()
+    }
 }
 
 impl From<ast::SchemaFile> for SourcedSchemaFile {

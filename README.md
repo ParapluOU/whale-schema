@@ -36,8 +36,9 @@ and facilitating the creation of Fonto instances tailored to the unique requirem
 - [x] command line interface (11/04)
 - [x] CLI arg for specifying target Fonto compiler version (12/04)
 - [x] @import statements (02/05)
+    - [x] glob pattern support for importing multiple files
+    - [x] Schema Manager with type counting across imports
     - [ ] fix recursion, allow cycled imports
-    - [ ] create Schema Manager to manage and collect schemas, and use Arc
 - [ ] move attribute definitions to the block-level instead of as same-level headers
 - [ ] file watcher
 - [ ] support for namespaces
@@ -396,6 +397,29 @@ as a string like in JS.
     // alias types and elements to get around coinflicts with locally named elements
     use { YourType as MyType } from ./our-stuff.whas
 
+#### Glob Patterns
+
+Import paths support glob patterns using wildcards (`*`) to import from multiple files at once:
+
+    // import all .whas files in a directory
+    import "./schemas/*"
+
+    // wildcard import from all matching files
+    import * from "./common/*"
+
+    // selective imports from multiple files
+    import {SharedType, HelperType} from "./utils/*"
+
+    import from "./components/*" {
+        Button,
+        Input,
+        Form
+    }
+
+    // glob patterns work with partial paths too
+    import "./glob*"  // matches glob1.whas, glob2.whas, etc.
+
+Glob patterns are resolved relative to the current file's directory and will import all matching `.whas` files.
 
     // todo: good idea?
     @from: ./other.whas

@@ -82,6 +82,6 @@ impl SchemaFileManager {
     }
 
     pub fn types_count(&self) -> usize {
-        0 // todo
+        self.map.values().map(|schema| schema.types_count()).sum()
     }
 }

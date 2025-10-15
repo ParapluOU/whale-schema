@@ -1,4 +1,5 @@
 use super::*;
+use wax::Glob;
 
 #[derive(Debug, Eq, PartialEq, FromPest)]
 #[pest_ast(rule(Rule::import))]
@@ -57,17 +58,69 @@ impl Import {
     }
 
     pub fn validate(&self, reference_dir: impl AsRef<Path>) -> anyhow::Result<()> {
-        let abspath = self.absolute_path(&reference_dir);
+        let path_str = self.path().to_str().unwrap_or("");
 
-        self.try_read_schema(Some(&reference_dir))
-            .context(format!("error reading schema: {}", abspath.display()))?
-            .validate_imports(self.absolute_dir(&reference_dir))
+        // Check if this is a glob pattern
+        if path_str.contains('*') {
+            // Normalize the pattern by removing leading ./ if present
+            let normalized_pattern = path_str.strip_prefix("./").unwrap_or(path_str);
+
+            // Use the relative pattern and walk from the reference directory
+            let glob = Glob::new(normalized_pattern)
+                .context(format!("invalid glob pattern: {}", normalized_pattern))?;
+
+            // Walk the directory and validate each matching file
+            let matches: Vec<_> = glob.walk(reference_dir.as_ref())
+                .filter_map(Result::ok)
+                .collect();
+
+            if matches.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "no files found matching glob pattern: {} in directory: {}",
+                    normalized_pattern,
+                    reference_dir.as_ref().display()
+                ));
+            }
+
+            for entry in matches {
+                let file_path = entry.path();
+                if file_path.is_file() {
+                    // Parse the schema without automatically validating imports
+                    let content = std::fs::read_to_string(file_path)
+                        .context(format!("error reading schema: {}", file_path.display()))?;
+                    let schema = SchemaFile::parse(&content)
+                        .context(format!("error parsing schema: {}", file_path.display()))?;
+                    // Validate imports using the matched file's parent directory as reference
+                    let file_dir = file_path.parent().unwrap_or(Path::new(""));
+                    schema.validate_imports(file_dir)?;
+                }
+            }
+
+            Ok(())
+        } else {
+            // Regular file path - use existing logic
+            let abspath = self.absolute_path(&reference_dir);
+
+            self.try_read_schema(Some(&reference_dir))
+                .context(format!("error reading schema: {}", abspath.display()))?
+                .validate_imports(self.absolute_dir(&reference_dir))
+        }
     }
 
     pub fn try_read_schema(
         &self,
         reference_dir: Option<impl AsRef<Path>>,
     ) -> anyhow::Result<SchemaFile> {
+        let path_str = self.path().to_str().unwrap_or("");
+
+        // Glob patterns are not supported for single schema reads
+        if path_str.contains('*') {
+            return Err(anyhow::anyhow!(
+                "glob patterns not supported in try_read_schema: {}. Use validate() or SchemaFileManager instead",
+                path_str
+            ));
+        }
+
         let reference_dir = reference_dir
             .map(|rd| rd.as_ref().to_path_buf())
             .unwrap_or_default();
