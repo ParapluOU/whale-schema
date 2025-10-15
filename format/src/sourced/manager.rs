@@ -1,5 +1,6 @@
 use crate::ast::SchemaFile;
 use crate::sourced::SourcedSchemaFile;
+use anyhow::Context;
 use derive_getters::Getters;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -60,25 +61,36 @@ impl SchemaFileManager {
             .ok_or(anyhow::anyhow!("schema dir not found"))?
             .to_path_buf();
 
+        // If already loaded, return cached version (prevents infinite recursion)
         if self.map.contains_key(&path) {
             return Ok(self.map.get(&path).unwrap().clone());
         }
 
-        // register schema so it can be resolved to
-        self.map
-            .insert(path.clone(), Arc::new(SchemaFile::new_file(&path)?));
+        // Parse the file WITHOUT validating imports (to avoid recursion issues)
+        // We resolve the file path first (handles .whas extension)
+        let resolved_path = SchemaFile::resolve_file_path(&path)?;
+        let content = std::fs::read_to_string(&resolved_path)
+            .context(format!("reading schema from {}", resolved_path.display()))?;
+        let schema = SchemaFile::parse(&content)
+            .context(format!("parsing schema from {}", resolved_path.display()))?;
 
-        // recursively go through the imports
-        let schema = self.map.get(&path).unwrap().clone();
-        for import in &schema.imports {
+        // Add to cache IMMEDIATELY before processing imports
+        // This enables cycle detection - if an import references this file again,
+        // the contains_key check above will catch it
+        let schema_arc = Arc::new(schema);
+        self.map.insert(path.clone(), schema_arc.clone());
+
+        // NOW recursively process imports (cycle detection works!)
+        let schema_ref = self.map.get(&path).unwrap().clone();
+        for import in &schema_ref.imports {
             // absolute path of the target schema that we want to import
             let import_abspath = import.absolute_path(&schema_dir);
 
-            // add it to the manager but ignore if its known
+            // add it to the manager (will use cache if already loaded)
             self.add_schema_file_path(import_abspath)?;
         }
 
-        Ok(self.map.get(&path).unwrap().clone())
+        Ok(schema_arc)
     }
 
     pub fn types_count(&self) -> usize {

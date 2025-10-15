@@ -85,14 +85,12 @@ impl Import {
             for entry in matches {
                 let file_path = entry.path();
                 if file_path.is_file() {
-                    // Parse the schema without automatically validating imports
+                    // Just verify the file can be parsed - don't recursively validate imports
+                    // (that would cause stack overflow with cyclic imports)
                     let content = std::fs::read_to_string(file_path)
                         .context(format!("error reading schema: {}", file_path.display()))?;
-                    let schema = SchemaFile::parse(&content)
+                    SchemaFile::parse(&content)
                         .context(format!("error parsing schema: {}", file_path.display()))?;
-                    // Validate imports using the matched file's parent directory as reference
-                    let file_dir = file_path.parent().unwrap_or(Path::new(""));
-                    schema.validate_imports(file_dir)?;
                 }
             }
 

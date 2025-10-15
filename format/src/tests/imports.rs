@@ -47,3 +47,18 @@ fn test_import_simple() {
         target_schema.types_count()
     );
 }
+
+/// test cyclic imports (A imports B, B imports A)
+#[test]
+fn test_import_cyclic() {
+    let result = SchemaFileManager::from_root_schema("./src/tests/schemas/imports/cycle-a.whas");
+
+    // This should not panic or cause infinite recursion
+    // Both schemas should be loaded successfully
+    assert!(result.is_ok(), "Cyclic imports should be handled gracefully");
+
+    let schema = result.unwrap();
+
+    // Should have types from both files
+    assert_eq!(schema.types_count(), 2, "Should load types from both cyclic schemas");
+}

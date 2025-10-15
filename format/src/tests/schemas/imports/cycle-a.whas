@@ -1,0 +1,5 @@
+import "./cycle-b.whas"
+
+TypeA {
+    #field-a: String
+}

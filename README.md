@@ -38,7 +38,7 @@ and facilitating the creation of Fonto instances tailored to the unique requirem
 - [x] @import statements (02/05)
     - [x] glob pattern support for importing multiple files
     - [x] Schema Manager with type counting across imports
-    - [ ] fix recursion, allow cycled imports
+    - [x] fix recursion, allow cycled imports
 - [ ] move attribute definitions to the block-level instead of as same-level headers
 - [ ] file watcher
 - [ ] support for namespaces
