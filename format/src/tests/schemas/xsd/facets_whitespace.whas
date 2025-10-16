@@ -1,0 +1,13 @@
+// Test XSD whiteSpace facet (preserve, replace, collapse)
+// NOT YET SUPPORTED
+
+// Expected syntax (hypothetical):
+// PreservedString: String {
+//     whiteSpace: preserve
+// }
+//
+// CollapsedString: String {
+//     whiteSpace: collapse
+// }
+
+#text: String

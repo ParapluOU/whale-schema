@@ -1,0 +1,21 @@
+// Test XSD identity constraints (xs:key, xs:keyref, xs:unique)
+// NOT YET SUPPORTED
+// Would enforce uniqueness and referential integrity
+
+// Expected syntax (hypothetical):
+// #products {
+//     #product+ {
+//         @id: ID  // unique key
+//         #name: String
+//     }
+// }
+//
+// #orders {
+//     #order+ {
+//         @product-ref: IDRef  // foreign key to product @id
+//     }
+// }
+
+#doc {
+    #item+: String
+}

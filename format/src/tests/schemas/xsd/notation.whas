@@ -1,0 +1,5 @@
+// Test XSD xs:notation
+// NOT YET SUPPORTED
+// Used for declaring notation types (e.g., for binary data formats)
+
+#data: String

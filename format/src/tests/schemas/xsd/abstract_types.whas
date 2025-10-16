@@ -1,0 +1,16 @@
+// Test XSD abstract types
+// NOT YET SUPPORTED
+// Abstract types cannot be instantiated directly
+
+// Expected syntax (hypothetical):
+// abstract BaseType {
+//     #base-field: String
+// }
+//
+// ConcreteType extends BaseType {
+//     #concrete-field: Int
+// }
+
+BaseType {
+    #field: String
+}

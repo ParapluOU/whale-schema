@@ -1,0 +1,10 @@
+// Test multiple attributes
+// Elements with many attributes
+
+@id: ID
+@name: String
+@price: Double
+@available?: Bool
+#product {
+    #description: String
+}

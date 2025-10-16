@@ -1,0 +1,8 @@
+// Test XSD all (! block modifier)
+// Maps to xs:all - all elements required regardless of order
+
+#metadata !{
+    #author: String
+    #date: Date
+    #version: String
+}

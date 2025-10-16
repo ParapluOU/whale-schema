@@ -1,0 +1,24 @@
+// Test type splatting
+// Note: postfix occurrence modifiers on splats (...Type?, etc.)
+// are documented in README but marked as TODO in roadmap
+
+Fields {
+    #field1: String
+    #field2: String
+}
+
+OptionalFields: ?{
+    ...Fields
+}
+
+#optional-fields {
+    ...Fields
+}
+
+#multiple-fields {
+    ...Fields
+}
+
+#required-fields {
+    ...Fields
+}

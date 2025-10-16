@@ -1,0 +1,10 @@
+// Test complex nested structures
+// Recursive type definitions
+
+List {
+    #item+: ListItem
+}
+
+ListItem x{
+    #list?: List
+}

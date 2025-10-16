@@ -1,0 +1,8 @@
+// Test XSD nillable elements
+// NOT YET SUPPORTED
+// Allows xsi:nil="true" to indicate null value
+
+// Expected syntax (hypothetical):
+// #optional-value?: nillable String
+
+#value: String

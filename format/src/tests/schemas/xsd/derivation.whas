@@ -1,0 +1,8 @@
+// Test simple type derivation (type aliasing)
+// Maps to xs:simpleType with xs:restriction base
+
+#element: SimpleType
+
+SimpleType: WrapperType
+
+WrapperType: String

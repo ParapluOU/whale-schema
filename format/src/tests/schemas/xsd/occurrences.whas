@@ -1,0 +1,9 @@
+// Test occurrence constraints
+// Maps to minOccurs and maxOccurs attributes
+
+#doc {
+    #title: String
+    #subtitle?: String
+    #author+: String
+    #tag*: String
+}

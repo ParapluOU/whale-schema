@@ -1,0 +1,9 @@
+// Test XSD namespaces
+// NOT YET SUPPORTED - namespaces are in roadmap
+// Would map to xs:schema targetNamespace, xmlns attributes
+
+// Expected syntax (hypothetical):
+// namespace: "http://example.com/schema"
+// namespace-prefix: "ex"
+
+#element: String

@@ -1,0 +1,14 @@
+// Test choice within sequence
+// Nested control structures
+// Using inline group with choice modifier
+
+ChoiceGroup ?{
+    #image: URI
+    #video: URI
+}
+
+#doc {
+    #title: String
+    ...ChoiceGroup
+    #footer: String
+}

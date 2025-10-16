@@ -1,0 +1,13 @@
+// Test XSD primitive type mappings
+// Maps to xs:string, xs:int, xs:boolean, etc.
+
+#text: String
+#number: Int
+#flag: Bool
+#timestamp: Date
+#link: URI
+#when: DateTime
+#duration: Duration
+#price: Double
+#id-field: ID
+#ref-field: IDRef

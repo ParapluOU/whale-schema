@@ -1,0 +1,13 @@
+// Test XSD xs:any (wildcard element)
+// NOT YET SUPPORTED
+// Would allow any element from any namespace
+
+// Expected syntax (hypothetical):
+// #container {
+//     #known: String
+//     ...any
+// }
+
+#container {
+    #known: String
+}

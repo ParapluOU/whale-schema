@@ -1,0 +1,6 @@
+// Test simple type restrictions (regex patterns)
+// Maps to xs:restriction with xs:pattern facet
+
+StatusType: /active|inactive|pending/
+
+#status: StatusType

@@ -1,0 +1,9 @@
+// Test XSD attributes
+// Maps to xs:attribute with required/optional
+
+@id: ID
+@age?: Int
+@name
+#person {
+    #bio: String
+}

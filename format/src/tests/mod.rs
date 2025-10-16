@@ -7,6 +7,7 @@ mod fonto;
 mod grammar;
 mod imports;
 mod types;
+mod xsd;
 
 pub fn get_test_schema_ast() -> SourcedSchemaFile {
     // crate::ast::SchemaFile::new_file("./test.whas").unwrap()

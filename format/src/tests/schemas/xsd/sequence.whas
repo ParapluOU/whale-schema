@@ -1,0 +1,8 @@
+// Test XSD sequence (default block behavior)
+// Maps to xs:sequence - ordered elements
+
+#doc {
+    #title: String
+    #author: String
+    #content: String
+}

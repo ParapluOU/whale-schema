@@ -1,0 +1,5 @@
+// Test XSD simpleContent (element with text content plus attributes)
+// SUPPORTED implicitly - element with simple type and attributes
+
+@unit: String
+#length: Int

@@ -1,0 +1,10 @@
+// Test XSD substitution groups
+// NOT YET SUPPORTED
+// Allows elements to substitute for other elements
+
+// Expected syntax (hypothetical):
+// #animal: String
+// #dog substitutes #animal: String
+// #cat substitutes #animal: String
+
+#animal: String

@@ -1,0 +1,7 @@
+// Test XSD block and final attributes
+// (preventing derivation/substitution)
+// NOT YET SUPPORTED
+
+BaseType {
+    #field: String
+}

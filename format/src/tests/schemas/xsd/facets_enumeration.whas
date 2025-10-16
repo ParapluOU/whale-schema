@@ -1,0 +1,14 @@
+// Test XSD enumeration facet
+// SUPPORTED via regex patterns but not explicit enum syntax
+
+// Current syntax (using regex):
+ColorType: /red|green|blue/
+
+#color: ColorType
+
+// Potential enum syntax (not implemented):
+// ColorEnum: enum {
+//     "red",
+//     "green",
+//     "blue"
+// }

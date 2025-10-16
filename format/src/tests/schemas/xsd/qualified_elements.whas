@@ -1,0 +1,5 @@
+// Test XSD elementFormDefault and attributeFormDefault
+// (qualified vs unqualified elements/attributes)
+// NOT YET SUPPORTED - related to namespaces
+
+#element: String

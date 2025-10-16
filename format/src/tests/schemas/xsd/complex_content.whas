@@ -1,0 +1,7 @@
+// Test XSD complexContent (element with child elements)
+// SUPPORTED - this is the default for elements with blocks
+
+#element {
+    #child1: String
+    #child2: Int
+}

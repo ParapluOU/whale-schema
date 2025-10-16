@@ -1,0 +1,7 @@
+// Test mixed content (x{...} modifier)
+// Maps to xs:complexType with mixed="true"
+
+#paragraph x{
+    #em?: String
+    #strong?: String
+}

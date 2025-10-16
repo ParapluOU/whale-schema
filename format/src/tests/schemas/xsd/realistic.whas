@@ -1,0 +1,37 @@
+// Test realistic example
+// Based on Milestone from test.whas
+
+List {
+    #item+: ListItem
+}
+
+ListItem x{
+    #list?: List
+}
+
+Text x{
+    #list*: List
+}
+
+TaskList {
+    #task+: Task
+}
+
+@assigned?: [IDRef]
+Task {
+    #ticket?: URI
+    #description: String
+    #subtasks?: TaskList
+}
+
+Milestone {
+    #title: String
+    #userstory?: Text
+    #taskdescription?: Text
+    #assumptions?: List
+
+    ...?{
+        #milestone: Milestone
+        #tasks: TaskList
+    }
+}

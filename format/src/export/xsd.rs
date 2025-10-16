@@ -1,0 +1,312 @@
+use crate::export::Exporter;
+use crate::model;
+use anyhow::Result;
+
+/// XSD XML Exporter - exports WHAS model to XSD (XML Schema Definition)
+pub struct XsdExporter {
+    /// Target namespace (if supported)
+    target_namespace: Option<String>,
+}
+
+impl Default for XsdExporter {
+    fn default() -> Self {
+        Self {
+            target_namespace: None,
+        }
+    }
+}
+
+impl Exporter for XsdExporter {
+    type Output = String;
+
+    fn export_schema(self, schema: &model::Schema) -> Result<Self::Output> {
+        let mut xsd = String::new();
+
+        // XML declaration
+        xsd.push_str(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
+        xsd.push('\n');
+
+        // xs:schema root element
+        xsd.push_str(r#"<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema""#);
+
+        if let Some(ns) = &self.target_namespace {
+            xsd.push_str(&format!(r#" targetNamespace="{}""#, ns));
+        }
+
+        xsd.push_str(" elementFormDefault=\"qualified\"");
+        xsd.push_str(">\n");
+
+        // Export simple types (primitives are built into XSD, only custom types need export)
+        // Iterate by looking up names from the schema
+        for type_name in schema.all_type_names() {
+            if let Some(simple_type) = schema.get_simpletype_by_name(type_name) {
+                if !simple_type.is_builtin() {
+                    xsd.push_str(&self.export_simple_type(type_name, simple_type, schema)?);
+                }
+            }
+        }
+
+        // Export complex types (groups)
+        for type_name in schema.all_type_names() {
+            if let Some(group) = schema.get_group_by_name(type_name) {
+                xsd.push_str(&self.export_complex_type(type_name, group, schema)?);
+            }
+        }
+
+        // Export top-level elements
+        // Elements are named by their name() method, not via the type name mapping
+        for element in schema.get_elements_root() {
+            xsd.push_str(&self.export_element(element.name(), element, schema)?);
+        }
+
+        // Close schema
+        xsd.push_str("</xs:schema>\n");
+
+        Ok(xsd)
+    }
+}
+
+impl XsdExporter {
+    pub fn with_namespace(namespace: impl Into<String>) -> Self {
+        Self {
+            target_namespace: Some(namespace.into()),
+        }
+    }
+
+    fn export_simple_type(
+        &self,
+        name: &str,
+        simple_type: &model::SimpleType,
+        schema: &model::Schema,
+    ) -> Result<String> {
+        let mut xsd = String::new();
+
+        xsd.push_str(&format!("  <xs:simpleType name=\"{}\">\n", name));
+
+        match simple_type {
+            model::SimpleType::Derived { base, restrictions } => {
+                let base_name = base.resolve(schema).to_type_name(schema);
+                xsd.push_str(&format!("    <xs:restriction base=\"xs:{}\">\n",
+                    self.map_primitive_to_xsd(&base_name)));
+
+                // Export restrictions
+                if let Some(pattern) = restrictions.pattern.as_ref() {
+                    xsd.push_str(&format!("      <xs:pattern value=\"{}\"/>\n",
+                        Self::escape_xml(pattern)));
+                }
+
+                xsd.push_str("    </xs:restriction>\n");
+            }
+            model::SimpleType::Union { member_types } => {
+                xsd.push_str("    <xs:union memberTypes=\"");
+                let members: Vec<String> = member_types
+                    .iter()
+                    .map(|t| {
+                        let type_name = t.resolve(schema).to_type_name(schema);
+                        format!("xs:{}", self.map_primitive_to_xsd(&type_name))
+                    })
+                    .collect();
+                xsd.push_str(&members.join(" "));
+                xsd.push_str("\"/>\n");
+            }
+            model::SimpleType::List { item_type, separator: _ } => {
+                let item_name = item_type.resolve(schema).to_type_name(schema);
+                xsd.push_str(&format!("    <xs:list itemType=\"xs:{}\"/>\n",
+                    self.map_primitive_to_xsd(&item_name)));
+            }
+            model::SimpleType::Builtin { .. } => {
+                // Should not reach here - builtins are filtered out
+            }
+        }
+
+        xsd.push_str("  </xs:simpleType>\n");
+
+        Ok(xsd)
+    }
+
+    fn export_complex_type(
+        &self,
+        name: &str,
+        group: &model::Group,
+        schema: &model::Schema,
+    ) -> Result<String> {
+        let mut xsd = String::new();
+
+        xsd.push_str(&format!("  <xs:complexType name=\"{}\">\n", name));
+
+        // Export group content
+        xsd.push_str(&self.export_group_content(group, schema, 2)?);
+
+        xsd.push_str("  </xs:complexType>\n");
+
+        Ok(xsd)
+    }
+
+    fn export_group_content(
+        &self,
+        group: &model::Group,
+        schema: &model::Schema,
+        indent_level: usize,
+    ) -> Result<String> {
+        let mut xsd = String::new();
+        let indent = "  ".repeat(indent_level);
+
+        // Determine group type
+        let group_tag = match group.ty() {
+            model::GroupType::Sequence => "xs:sequence",
+            model::GroupType::Choice => "xs:choice",
+            model::GroupType::All => "xs:all",
+        };
+
+        xsd.push_str(&format!("{}<{}>\n", indent, group_tag));
+
+        // Export items
+        for item in group.items() {
+            match item {
+                model::GroupItem::Element(el_ref) => {
+                    let element = el_ref.resolve(schema);
+                    xsd.push_str(&self.export_element_inline(element, schema, indent_level + 1)?);
+                }
+                model::GroupItem::Group(g_ref) => {
+                    let nested_group = g_ref.resolve(schema);
+                    xsd.push_str(&self.export_group_content(nested_group, schema, indent_level + 1)?);
+                }
+            }
+        }
+
+        xsd.push_str(&format!("{}</{}>\n", indent, group_tag));
+
+        Ok(xsd)
+    }
+
+    fn export_element(
+        &self,
+        name: &str,
+        element: &model::Element,
+        schema: &model::Schema,
+    ) -> Result<String> {
+        let mut xsd = String::new();
+
+        xsd.push_str(&format!("  <xs:element name=\"{}\"", name));
+
+        // Add occurrence constraints
+        if element.min_occurs() != 1 {
+            xsd.push_str(&format!(" minOccurs=\"{}\"", element.min_occurs()));
+        }
+        if let Some(max) = element.max_occurs() {
+            xsd.push_str(&format!(" maxOccurs=\"{}\"", max));
+        } else {
+            xsd.push_str(" maxOccurs=\"unbounded\"");
+        }
+
+        // Check if it has complex type
+        if let Some(group_type) = element.typing().grouptype(schema) {
+            xsd.push_str(">\n");
+            xsd.push_str("    <xs:complexType>\n");
+            xsd.push_str(&self.export_group_content(group_type, schema, 3)?);
+            xsd.push_str("    </xs:complexType>\n");
+            xsd.push_str("  </xs:element>\n");
+        } else if let Some(simple_type) = element.typing().simpletype(schema) {
+            // Simple type
+            let type_name = simple_type.to_type_name(schema);
+            xsd.push_str(&format!(" type=\"xs:{}\"/>\n", self.map_primitive_to_xsd(&type_name)));
+        } else {
+            xsd.push_str("/>\n");
+        }
+
+        Ok(xsd)
+    }
+
+    fn export_element_inline(
+        &self,
+        element: &model::Element,
+        schema: &model::Schema,
+        indent_level: usize,
+    ) -> Result<String> {
+        let indent = "  ".repeat(indent_level);
+        let mut xsd = String::new();
+
+        xsd.push_str(&format!("{}<xs:element name=\"{}\"", indent, element.name()));
+
+        // Occurrence constraints
+        if element.min_occurs() != 1 {
+            xsd.push_str(&format!(" minOccurs=\"{}\"", element.min_occurs()));
+        }
+        if let Some(max) = element.max_occurs() {
+            xsd.push_str(&format!(" maxOccurs=\"{}\"", max));
+        } else {
+            xsd.push_str(" maxOccurs=\"unbounded\"");
+        }
+
+        // Type reference
+        if let Some(simple_type) = element.typing().simpletype(schema) {
+            let type_name = simple_type.to_type_name(schema);
+            xsd.push_str(&format!(" type=\"xs:{}\"", self.map_primitive_to_xsd(&type_name)));
+            xsd.push_str("/>\n");
+        } else if let Some(group_type) = element.typing().grouptype(schema) {
+            xsd.push_str(">\n");
+            xsd.push_str(&format!("{}  <xs:complexType>\n", indent));
+            xsd.push_str(&self.export_group_content(group_type, schema, indent_level + 2)?);
+            xsd.push_str(&format!("{}  </xs:complexType>\n", indent));
+            xsd.push_str(&format!("{}</xs:element>\n", indent));
+        } else {
+            xsd.push_str("/>\n");
+        }
+
+        Ok(xsd)
+    }
+
+    /// Map WHAS primitive type names to XSD type names
+    fn map_primitive_to_xsd(&self, whas_type: &str) -> String {
+        match whas_type {
+            "String" => "string",
+            "Int" | "Integer" => "integer",
+            "Bool" | "Boolean" => "boolean",
+            "Date" => "date",
+            "DateTime" => "dateTime",
+            "DateTimestamp" => "dateTime",
+            "Time" => "time",
+            "Duration" => "duration",
+            "Float" => "float",
+            "Double" => "double",
+            "Short" => "short",
+            "Decimal" => "decimal",
+            "ID" => "ID",
+            "IDRef" => "IDREF",
+            "IDRefs" => "IDREFS",
+            "URI" => "anyURI",
+            "Lang" => "language",
+            "Name" => "Name",
+            "NoColName" => "NCName",
+            "-Int" => "negativeInteger",
+            "+Int" => "nonNegativeInteger",
+            "Token" => "token",
+            "NameToken" => "NMTOKEN",
+            "NameTokens" => "NMTOKENS",
+            _ => whas_type, // Custom type, use as-is
+        }.to_string()
+    }
+
+    fn escape_xml(s: &str) -> String {
+        s.replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;")
+            .replace('"', "&quot;")
+            .replace('\'', "&apos;")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_primitive_mapping() {
+        let exporter = XsdExporter::default();
+        assert_eq!(exporter.map_primitive_to_xsd("String"), "string");
+        assert_eq!(exporter.map_primitive_to_xsd("Int"), "integer");
+        assert_eq!(exporter.map_primitive_to_xsd("Bool"), "boolean");
+        assert_eq!(exporter.map_primitive_to_xsd("Date"), "date");
+        assert_eq!(exporter.map_primitive_to_xsd("URI"), "anyURI");
+    }
+}

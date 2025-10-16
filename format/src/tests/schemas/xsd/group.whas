@@ -1,0 +1,13 @@
+// Test XSD group (type splatting with ...TypeName)
+// Maps to xs:group - reusable element groups
+
+CommonFields {
+    #id: ID
+    #created: Date
+}
+
+#document {
+    ...CommonFields
+    #title: String
+    #body: String
+}

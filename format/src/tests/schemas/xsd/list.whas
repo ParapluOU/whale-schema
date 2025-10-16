@@ -1,0 +1,9 @@
+// Test list types ([IDRef] syntax)
+// Maps to xs:list
+
+AssignedIds: [IDRef]
+
+#task {
+    @assigned: AssignedIds
+    #name: String
+}

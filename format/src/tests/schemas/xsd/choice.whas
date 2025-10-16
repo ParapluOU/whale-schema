@@ -1,0 +1,13 @@
+// Test XSD choice (? block modifier)
+// Maps to xs:choice - only one element allowed
+// Using Type with choice modifier and splat syntax
+
+ContentChoice: ?{
+    #text: String
+    #image: URI
+    #video: URI
+}
+
+#content {
+    ...ContentChoice
+}

@@ -1,0 +1,17 @@
+// Test XSD numeric facets: minInclusive, maxInclusive, minExclusive, maxExclusive
+// totalDigits, fractionDigits
+// NOT YET SUPPORTED
+
+// Expected syntax (hypothetical):
+// Percentage: Int {
+//     minInclusive: 0
+//     maxInclusive: 100
+// }
+//
+// Decimal2: Decimal {
+//     totalDigits: 5
+//     fractionDigits: 2
+// }
+
+#percentage: Int
+#price: Decimal

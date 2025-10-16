@@ -1,0 +1,14 @@
+// Test XSD attribute groups (xs:attributeGroup)
+// PARTIALLY SUPPORTED - can define attributes on types and merge them
+// But no explicit attribute group syntax separate from element groups
+
+@id: ID
+@created: Date
+CommonAttrs {
+    // Empty group just for carrying attributes
+}
+
+@name: String
+#element {
+    ...CommonAttrs
+}

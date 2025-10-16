@@ -1,0 +1,11 @@
+// Test XSD xs:anyAttribute (wildcard attributes)
+// NOT YET SUPPORTED
+// Would allow any attribute from any namespace
+
+// Expected syntax (hypothetical):
+// @id: ID
+// @...any
+// #element: String
+
+@id: ID
+#element: String

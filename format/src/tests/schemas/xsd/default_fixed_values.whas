@@ -1,0 +1,10 @@
+// Test XSD default and fixed values
+// PARTIALLY SUPPORTED - marked as TODO in roadmap
+// Default values for elements and attributes
+
+// Expected syntax (hypothetical):
+// @country = "US": String  // default value
+// @version := "1.0": String  // fixed value
+
+@country: String
+#element: String

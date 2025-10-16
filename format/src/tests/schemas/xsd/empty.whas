@@ -1,0 +1,4 @@
+// Test empty elements
+// Elements with no attributes or content
+
+#br {}

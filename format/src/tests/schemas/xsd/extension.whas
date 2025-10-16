@@ -1,0 +1,21 @@
+// Test XSD xs:extension (complex type extension)
+// NOT YET SUPPORTED
+// Would extend a complex type with additional elements/attributes
+
+// Expected syntax (hypothetical):
+// BaseType {
+//     #base-field: String
+// }
+//
+// ExtendedType extends BaseType {
+//     #extra-field: Int
+// }
+
+BaseType {
+    #base-field: String
+}
+
+ExtendedType {
+    #base-field: String
+    #extra-field: Int
+}

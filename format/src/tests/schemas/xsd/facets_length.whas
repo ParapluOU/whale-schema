@@ -1,0 +1,15 @@
+// Test XSD facets: length, minLength, maxLength
+// NOT YET SUPPORTED - only pattern restrictions currently work
+
+// Expected syntax (hypothetical):
+// ShortString: String {
+//     minLength: 3
+//     maxLength: 10
+// }
+//
+// FixedString: String {
+//     length: 5
+// }
+
+#short-text: String
+#fixed-text: String

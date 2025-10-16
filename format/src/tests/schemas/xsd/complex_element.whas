@@ -1,0 +1,10 @@
+// Test elements with complex type
+// Elements with both attributes and child elements
+
+@isbn: String
+@year?: Int
+#book {
+    #title: String
+    #author: String
+    #publisher: String
+}
