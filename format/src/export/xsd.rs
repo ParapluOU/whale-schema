@@ -53,9 +53,12 @@ impl Exporter for XsdExporter {
             }
         }
 
-        // Export top-level elements
+        // Export top-level elements (sorted by name for deterministic output)
         // Elements are named by their name() method, not via the type name mapping
-        for element in schema.get_elements_root() {
+        let mut root_elements = schema.get_elements_root();
+        root_elements.sort_by_key(|el| el.name());
+
+        for element in &root_elements {
             xsd.push_str(&self.export_element(element.name(), element, schema)?);
         }
 
@@ -190,27 +193,89 @@ impl XsdExporter {
         xsd.push_str(&format!("  <xs:element name=\"{}\"", name));
 
         // Add occurrence constraints
-        if element.min_occurs() != 1 {
-            xsd.push_str(&format!(" minOccurs=\"{}\"", element.min_occurs()));
-        }
+        xsd.push_str(&format!(" minOccurs=\"{}\"", element.min_occurs()));
         if let Some(max) = element.max_occurs() {
             xsd.push_str(&format!(" maxOccurs=\"{}\"", max));
         } else {
             xsd.push_str(" maxOccurs=\"unbounded\"");
         }
 
+        // Get attributes
+        let attrs = element.group_merged_attributes(schema);
+        let has_attrs = !attrs.as_vec().is_empty();
+
         // Check if it has complex type
         if let Some(group_type) = element.typing().grouptype(schema) {
             xsd.push_str(">\n");
-            xsd.push_str("    <xs:complexType>\n");
+            // Check for mixed content
+            if element.is_mixed_content(schema) {
+                xsd.push_str("    <xs:complexType mixed=\"true\">\n");
+            } else {
+                xsd.push_str("    <xs:complexType>\n");
+            }
             xsd.push_str(&self.export_group_content(group_type, schema, 3)?);
+            xsd.push_str(&self.export_attributes(&attrs, schema, 3)?);
             xsd.push_str("    </xs:complexType>\n");
             xsd.push_str("  </xs:element>\n");
         } else if let Some(simple_type) = element.typing().simpletype(schema) {
-            // Simple type
-            let type_name = simple_type.to_type_name(schema);
-            xsd.push_str(&format!(" type=\"xs:{}\"/>\n", self.map_primitive_to_xsd(&type_name)));
+            // Simple type with attributes (simpleContent)
+            if has_attrs {
+                xsd.push_str(">\n");
+                xsd.push_str("    <xs:complexType>\n");
+                xsd.push_str("      <xs:simpleContent>\n");
+                let type_name = simple_type.to_type_name(schema);
+                xsd.push_str(&format!("        <xs:extension base=\"xs:{}\">\n", self.map_primitive_to_xsd(&type_name)));
+                xsd.push_str(&self.export_attributes(&attrs, schema, 5)?);
+                xsd.push_str("        </xs:extension>\n");
+                xsd.push_str("      </xs:simpleContent>\n");
+                xsd.push_str("    </xs:complexType>\n");
+                xsd.push_str("  </xs:element>\n");
+            } else {
+                // Simple type without attributes
+                let type_name = simple_type.to_type_name(schema);
+                xsd.push_str(&format!(" type=\"xs:{}\"/>\n", self.map_primitive_to_xsd(&type_name)));
+            }
+        } else if has_attrs {
+            // Attributes only (empty content)
+            xsd.push_str(">\n");
+            xsd.push_str("    <xs:complexType>\n");
+            xsd.push_str(&self.export_attributes(&attrs, schema, 3)?);
+            xsd.push_str("    </xs:complexType>\n");
+            xsd.push_str("  </xs:element>\n");
         } else {
+            xsd.push_str("/>\n");
+        }
+
+        Ok(xsd)
+    }
+
+    fn export_attributes(
+        &self,
+        attrs: &model::Attributes,
+        schema: &model::Schema,
+        indent_level: usize,
+    ) -> Result<String> {
+        let mut xsd = String::new();
+        let indent = "  ".repeat(indent_level);
+
+        // Sort attributes by name for deterministic output
+        let mut attr_vec = attrs.as_vec().clone();
+        attr_vec.sort_by_key(|attr_ref| attr_ref.resolve(schema).name());
+
+        for attr_ref in attr_vec {
+            let attr = attr_ref.resolve(schema);
+            xsd.push_str(&format!("{}<xs:attribute name=\"{}\"", indent, attr.name()));
+
+            // Type - attr.typing is directly a Ref<SimpleType>
+            let attr_type = attr.typing.resolve(schema);
+            let type_name = attr_type.to_type_name(schema);
+            xsd.push_str(&format!(" type=\"xs:{}\"", self.map_primitive_to_xsd(&type_name)));
+
+            // Required/optional (use="required" vs use="optional")
+            if *attr.required() {
+                xsd.push_str(" use=\"required\"");
+            } // Optional is the default, no need to specify
+
             xsd.push_str("/>\n");
         }
 
@@ -229,9 +294,7 @@ impl XsdExporter {
         xsd.push_str(&format!("{}<xs:element name=\"{}\"", indent, element.name()));
 
         // Occurrence constraints
-        if element.min_occurs() != 1 {
-            xsd.push_str(&format!(" minOccurs=\"{}\"", element.min_occurs()));
-        }
+        xsd.push_str(&format!(" minOccurs=\"{}\"", element.min_occurs()));
         if let Some(max) = element.max_occurs() {
             xsd.push_str(&format!(" maxOccurs=\"{}\"", max));
         } else {

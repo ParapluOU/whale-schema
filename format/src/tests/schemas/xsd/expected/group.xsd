@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:complexType name="CommonFields">
+    <xs:sequence>
+      <xs:element name="id" minOccurs="1" maxOccurs="1" type="xs:ID"/>
+      <xs:element name="created" minOccurs="1" maxOccurs="1" type="xs:date"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="document" minOccurs="1" maxOccurs="1">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:sequence>
+          <xs:element name="id" minOccurs="1" maxOccurs="1" type="xs:ID"/>
+          <xs:element name="created" minOccurs="1" maxOccurs="1" type="xs:date"/>
+        </xs:sequence>
+        <xs:element name="title" minOccurs="1" maxOccurs="1" type="xs:string"/>
+        <xs:element name="body" minOccurs="1" maxOccurs="1" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

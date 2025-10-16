@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:complexType name="ContentChoice">
+    <xs:choice>
+      <xs:element name="text" minOccurs="1" maxOccurs="1" type="xs:string"/>
+      <xs:element name="image" minOccurs="1" maxOccurs="1" type="xs:anyURI"/>
+      <xs:element name="video" minOccurs="1" maxOccurs="1" type="xs:anyURI"/>
+    </xs:choice>
+  </xs:complexType>
+  <xs:element name="content" minOccurs="1" maxOccurs="1">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:choice>
+          <xs:element name="text" minOccurs="1" maxOccurs="1" type="xs:string"/>
+          <xs:element name="image" minOccurs="1" maxOccurs="1" type="xs:anyURI"/>
+          <xs:element name="video" minOccurs="1" maxOccurs="1" type="xs:anyURI"/>
+        </xs:choice>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

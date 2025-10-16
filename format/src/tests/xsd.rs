@@ -5,142 +5,85 @@ use crate::sourced::SchemaFileManager;
 use crate::{compiler, model};
 use anyhow::Result;
 
+/// Helper function to compare XSD output against expected golden file
+fn assert_xsd_matches_expected(schema_name: &str) -> Result<()> {
+    let schema_path = format!("src/tests/schemas/xsd/{}.whas", schema_name);
+    let expected_path = format!("src/tests/schemas/xsd/expected/{}.xsd", schema_name);
+
+    let schema = model::Schema::from_file(&schema_path)?;
+    let exporter = XsdExporter::default();
+    let actual_output = exporter.export_schema(&schema)?;
+
+    let expected_output = std::fs::read_to_string(&expected_path)
+        .unwrap_or_else(|_| panic!("Expected XSD file not found: {}", expected_path));
+
+    // Normalize whitespace for comparison (in case of line ending differences)
+    let actual_normalized = actual_output.trim();
+    let expected_normalized = expected_output.trim();
+
+    if actual_normalized != expected_normalized {
+        eprintln!("\n=== ACTUAL OUTPUT ===");
+        eprintln!("{}", actual_output);
+        eprintln!("\n=== EXPECTED OUTPUT ===");
+        eprintln!("{}", expected_output);
+        eprintln!("\n=== DIFF ===");
+
+        // Simple diff - show first difference
+        for (i, (actual_line, expected_line)) in actual_output.lines().zip(expected_output.lines()).enumerate() {
+            if actual_line != expected_line {
+                eprintln!("Line {}: DIFFER", i + 1);
+                eprintln!("  Actual:   {}", actual_line);
+                eprintln!("  Expected: {}", expected_line);
+                break;
+            }
+        }
+
+        panic!("XSD output does not match expected output for {}", schema_name);
+    }
+
+    Ok(())
+}
+
 /// Test XSD primitive type mappings
 #[test]
 fn test_xsd_primitives() -> Result<()> {
-    let schema = model::Schema::from_file("src/tests/schemas/xsd/primitives.whas")?;
-
-    // Export to XSD
-    let exporter = XsdExporter::default();
-    let xsd_output = exporter.export_schema(&schema)?;
-
-    // Verify XSD structure
-    assert!(xsd_output.contains("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"));
-    assert!(xsd_output.contains("<xs:schema"));
-    assert!(xsd_output.contains("xmlns:xs=\"http://www.w3.org/2001/XMLSchema\""));
-
-    // Verify primitive types are exported as elements with correct XSD types
-    assert!(xsd_output.contains(r#"<xs:element name="text""#));
-    assert!(xsd_output.contains(r#"type="xs:string""#));
-    assert!(xsd_output.contains(r#"<xs:element name="number""#));
-    assert!(xsd_output.contains(r#"type="xs:integer""#));
-    assert!(xsd_output.contains(r#"<xs:element name="flag""#));
-    assert!(xsd_output.contains(r#"type="xs:boolean""#));
-    assert!(xsd_output.contains(r#"<xs:element name="timestamp""#));
-    assert!(xsd_output.contains(r#"type="xs:date""#));
-    assert!(xsd_output.contains(r#"<xs:element name="link""#));
-    assert!(xsd_output.contains(r#"type="xs:anyURI""#));
-
-    // Print output for debugging
-    println!("\n=== XSD Output for primitives.whas ===\n{}\n", xsd_output);
-
-    Ok(())
+    assert_xsd_matches_expected("primitives")
 }
 
 /// Test XSD sequence (default block behavior)
 #[test]
 fn test_xsd_sequence() -> Result<()> {
-    let schema = model::Schema::from_file("src/tests/schemas/xsd/sequence.whas")?;
-
-    let elements = schema.get_elements_by_name("doc");
-    assert_eq!(1, elements.len());
-
-    let group = elements[0].typing().grouptype(&schema).unwrap();
-    assert_eq!(group.ty(), &GroupType::Sequence);
-    assert!(group.items().len() >= 2, "Sequence should have multiple items");
-
-    Ok(())
+    assert_xsd_matches_expected("sequence")
 }
 
 /// Test XSD choice (? block modifier)
 #[test]
 fn test_xsd_choice() -> Result<()> {
-    let schema = model::Schema::from_file("src/tests/schemas/xsd/choice.whas")?;
-
-    // Verify the choice type exists
-    let choice_group = schema.get_group_by_name("ContentChoice");
-    assert!(choice_group.is_some(), "ContentChoice group should exist");
-
-    let choice_group = choice_group.unwrap();
-    assert_eq!(choice_group.ty(), &GroupType::Choice, "ContentChoice should be a Choice group");
-    assert!(choice_group.items().len() >= 2, "Choice should have multiple options");
-
-    // Verify the element that uses the choice
-    let elements = schema.get_elements_by_name("content");
-    assert_eq!(1, elements.len());
-
-    Ok(())
+    assert_xsd_matches_expected("choice")
 }
 
 /// Test XSD all (! block modifier)
 #[test]
 fn test_xsd_all() -> Result<()> {
-    let schema = model::Schema::from_file("src/tests/schemas/xsd/all.whas")?;
-
-    let elements = schema.get_elements_by_name("metadata");
-    assert_eq!(1, elements.len());
-
-    let group = elements[0].typing().grouptype(&schema).unwrap();
-    assert_eq!(group.ty(), &GroupType::All);
-    assert!(group.items().len() >= 2, "All should have multiple items");
-
-    Ok(())
+    assert_xsd_matches_expected("all")
 }
 
 /// Test XSD group (type splatting with ...TypeName)
 #[test]
 fn test_xsd_group() -> Result<()> {
-    let schema = model::Schema::from_file("src/tests/schemas/xsd/group.whas")?;
-
-    // Verify the reusable group type exists
-    assert!(schema.get_group_by_name("CommonFields").is_some());
-
-    // Verify the element that splats the group
-    let elements = schema.get_elements_by_name("document");
-    assert_eq!(1, elements.len());
-
-    let group = elements[0].typing().grouptype(&schema).unwrap();
-    // The splatted items should be merged into the group
-    assert!(group.items().len() >= 2, "Should contain splatted items");
-
-    Ok(())
+    assert_xsd_matches_expected("group")
 }
 
 /// Test XSD attributes
 #[test]
 fn test_xsd_attributes() -> Result<()> {
-    let schema = model::Schema::from_file("src/tests/schemas/xsd/attributes.whas")?;
-
-    let elements = schema.get_elements_by_name("person");
-    assert_eq!(1, elements.len());
-
-    let attrs = elements[0].group_merged_attributes(&schema);
-    assert!(attrs.as_vec().len() >= 2, "Should have multiple attributes");
-
-    // Check for required and optional attributes
-    let required_attrs = attrs.as_vec().iter().filter(|a| *a.resolve(&schema).required()).count();
-    let optional_attrs = attrs.as_vec().iter().filter(|a| !*a.resolve(&schema).required()).count();
-
-    assert!(required_attrs >= 1, "Should have at least one required attribute");
-    assert!(optional_attrs >= 1, "Should have at least one optional attribute");
-
-    Ok(())
+    assert_xsd_matches_expected("attributes")
 }
 
 /// Test mixed content (x{...} modifier)
 #[test]
 fn test_xsd_mixed() -> Result<()> {
-    let schema = model::Schema::from_file("src/tests/schemas/xsd/mixed.whas")?;
-
-    let elements = schema.get_elements_by_name("paragraph");
-    assert_eq!(1, elements.len());
-
-    assert!(
-        elements[0].is_mixed_content(&schema),
-        "Element should allow mixed content"
-    );
-
-    Ok(())
+    assert_xsd_matches_expected("mixed")
 }
 
 /// Test occurrence constraints (?, *, +, [n..m])
