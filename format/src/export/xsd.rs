@@ -37,8 +37,11 @@ impl Exporter for XsdExporter {
         xsd.push_str(">\n");
 
         // Export simple types (primitives are built into XSD, only custom types need export)
-        // Iterate by looking up names from the schema
-        for type_name in schema.all_type_names() {
+        // Sort type names for deterministic output
+        let mut type_names = schema.all_type_names();
+        type_names.sort();
+
+        for type_name in &type_names {
             if let Some(simple_type) = schema.get_simpletype_by_name(type_name) {
                 if !simple_type.is_builtin() {
                     xsd.push_str(&self.export_simple_type(type_name, simple_type, schema)?);
@@ -46,8 +49,8 @@ impl Exporter for XsdExporter {
             }
         }
 
-        // Export complex types (groups)
-        for type_name in schema.all_type_names() {
+        // Export complex types (groups) - sorted for deterministic output
+        for type_name in &type_names {
             if let Some(group) = schema.get_group_by_name(type_name) {
                 xsd.push_str(&self.export_complex_type(type_name, group, schema)?);
             }
@@ -87,7 +90,7 @@ impl XsdExporter {
         xsd.push_str(&format!("  <xs:simpleType name=\"{}\">\n", name));
 
         match simple_type {
-            model::SimpleType::Derived { base, restrictions } => {
+            model::SimpleType::Derived { base, restrictions, .. } => {
                 let base_name = base.resolve(schema).to_type_name(schema);
                 xsd.push_str(&format!("    <xs:restriction base=\"xs:{}\">\n",
                     self.map_primitive_to_xsd(&base_name)));
@@ -135,10 +138,34 @@ impl XsdExporter {
     ) -> Result<String> {
         let mut xsd = String::new();
 
-        xsd.push_str(&format!("  <xs:complexType name=\"{}\">\n", name));
+        // Add abstract attribute if type is abstract
+        if group.is_abstract() {
+            xsd.push_str(&format!("  <xs:complexType name=\"{}\" abstract=\"true\">\n", name));
+        } else {
+            xsd.push_str(&format!("  <xs:complexType name=\"{}\">\n", name));
+        }
 
-        // Export group content
-        xsd.push_str(&self.export_group_content(group, schema, 2)?);
+        // Handle inheritance with xs:extension
+        if let Some(base_ref) = group.base_type() {
+            let base_group = base_ref.resolve(schema);
+            // Find the base type name
+            if let Some(base_name) = schema.get_type_name_for_group(base_ref) {
+                xsd.push_str("    <xs:complexContent>\n");
+                xsd.push_str(&format!("      <xs:extension base=\"{}\">\n", base_name));
+
+                // Export only local fields (not inherited)
+                xsd.push_str(&self.export_group_content_local(group, schema, 4)?);
+
+                xsd.push_str("      </xs:extension>\n");
+                xsd.push_str("    </xs:complexContent>\n");
+            } else {
+                // Fallback if base name not found - export all content
+                xsd.push_str(&self.export_group_content(group, schema, 2)?);
+            }
+        } else {
+            // No inheritance - export group content normally
+            xsd.push_str(&self.export_group_content(group, schema, 2)?);
+        }
 
         xsd.push_str("  </xs:complexType>\n");
 
@@ -164,6 +191,45 @@ impl XsdExporter {
         xsd.push_str(&format!("{}<{}>\n", indent, group_tag));
 
         // Export items
+        for item in group.items() {
+            match item {
+                model::GroupItem::Element(el_ref) => {
+                    let element = el_ref.resolve(schema);
+                    xsd.push_str(&self.export_element_inline(element, schema, indent_level + 1)?);
+                }
+                model::GroupItem::Group(g_ref) => {
+                    let nested_group = g_ref.resolve(schema);
+                    xsd.push_str(&self.export_group_content(nested_group, schema, indent_level + 1)?);
+                }
+            }
+        }
+
+        xsd.push_str(&format!("{}</{}>\n", indent, group_tag));
+
+        Ok(xsd)
+    }
+
+    /// Export only local group content (excludes inherited fields from base type)
+    fn export_group_content_local(
+        &self,
+        group: &model::Group,
+        schema: &model::Schema,
+        indent_level: usize,
+    ) -> Result<String> {
+        let mut xsd = String::new();
+        let indent = "  ".repeat(indent_level);
+
+        // Determine group type
+        let group_tag = match group.ty() {
+            model::GroupType::Sequence => "xs:sequence",
+            model::GroupType::Choice => "xs:choice",
+            model::GroupType::All => "xs:all",
+        };
+
+        xsd.push_str(&format!("{}<{}>\n", indent, group_tag));
+
+        // Export only local items (all items in this group are local by definition)
+        // Inheritance is handled by XSD's extension mechanism
         for item in group.items() {
             match item {
                 model::GroupItem::Element(el_ref) => {

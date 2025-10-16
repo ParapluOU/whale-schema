@@ -25,6 +25,7 @@ sym_splat = _{ "..." }
 sym_typing_assign = _{ ":" }
 sym_empty = _{ "" }
 sym_schema_var = _{ "$" }
+sym_inherit = _{ "<" }
 
 // generic symbols
 sym_mod_opt = { "?" }
@@ -209,13 +210,20 @@ type_regex = @{ sym_delim_regex ~ (!sym_delim_regex ~ ANY)+ ~ sym_delim_regex }
 
 typedef = { typedef_block | typedef_inline }
 
+// inheritance clause: < BaseType or < BaseType(Arg)
+inheritance = { sym_inherit ~ typename }
+
 // @assigned?: IDRefs
 // Task(desc) {
 //     #ticket?: URI
 //     #description: desc
 //     #subtasks?: TaskList
 // }
-typedef_block = { attributes ~ ident_type_nonprimitive ~ typedef_vars? ~ sym_typing_assign? ~ block }
+// or with inheritance:
+// Car(T) < Vehicle {
+//     #numDoors: Int
+// }
+typedef_block = { attributes ~ ident_type_nonprimitive ~ typedef_vars? ~ inheritance? ~ sym_typing_assign? ~ block }
 
 // TaskDesc: String
 typedef_inline = { ident_type_nonprimitive ~ typedef_vars? ~ sym_typing_assign ~ typedef_inline_typing }
@@ -241,9 +249,10 @@ type_args = { sym_args_open ~ (typearg ~ (sym_delim_field ~ typearg)*)? ~ sym_ar
 //
 
 // modifiers that can be prefixed to blocks.
+// the 'a' denotes abstract type;
 // the 'x' denotes mixed content;
 // the occurrence configures the element requirement ordering
-block_mods = { mod_mixed? ~ mod_occurrence? ~ mod_mixed? }
+block_mods = { mod_abstract? ~ mod_mixed? ~ mod_occurrence? ~ mod_mixed? }
 
 // definition of a block that has element fields (optionally comma separated)
 block = { block_mods ~ sym_block_open ~ (block_item ~ sym_delim_field?)* ~ sym_block_close }
@@ -284,6 +293,7 @@ mod_range_span = { uint ~ sym_mod_range ~ uint }
 mod_duplicity = { sym_mod_opt | sym_mod_any | sym_mod_min1 | mod_range }
 mod_occurrence = { sym_mod_opt | sym_mod_must }
 mod_mixed = { "x" }
+mod_abstract = { "a" }
 
 //
 // IDENTIFIER

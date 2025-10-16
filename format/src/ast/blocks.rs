@@ -35,6 +35,8 @@ pub enum BlockItem {
 #[derive(Debug, Eq, PartialEq, Clone, FromPest)]
 #[pest_ast(rule(Rule::block_mods))]
 pub struct BlockMods {
+    /// whether the type is abstract (cannot be instantiated)
+    pub abstract_mod: Option<BlockModAbstract>,
     /// whether the block allows mixed content
     pub mixed_prefix: Option<BlockModMixed>,
     /// whether the block is a <xs:sequence>, <xs:all> or <xs:choice>
@@ -45,6 +47,10 @@ pub struct BlockMods {
 }
 
 impl BlockMods {
+    pub fn is_abstract(&self) -> bool {
+        self.abstract_mod.is_some()
+    }
+
     pub fn is_mixed_content(&self) -> bool {
         self.mixed_prefix.is_some() || self.mixed_postfix.is_some()
     }
@@ -109,6 +115,14 @@ pub struct BlockModMust {
 #[derive(Debug, Eq, PartialEq, Clone, FromPest)]
 #[pest_ast(rule(Rule::mod_mixed))]
 pub struct BlockModMixed {
+    #[pest_ast(outer(with(span_into_str), with(str::to_string)))]
+    pub token: String,
+}
+
+/// block modifier indicating abstract type
+#[derive(Debug, Eq, PartialEq, Clone, FromPest)]
+#[pest_ast(rule(Rule::mod_abstract))]
+pub struct BlockModAbstract {
     #[pest_ast(outer(with(span_into_str), with(str::to_string)))]
     pub token: String,
 }

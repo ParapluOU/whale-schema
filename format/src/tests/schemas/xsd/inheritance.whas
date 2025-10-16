@@ -1,0 +1,15 @@
+// Test inheritance with xs:extension
+
+// Base type
+@vin: ID
+Vehicle {
+    #manufacturer: String
+}
+
+// Derived type that extends Vehicle
+Car < Vehicle {
+    #num-doors: Int
+    #model: String
+}
+
+#car: Car

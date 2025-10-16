@@ -14,6 +14,8 @@ pub enum SimpleType {
         base: Ref<SimpleType>,
         /// list of restrictions to apply to form new type
         restrictions: SimpleTypeRestriction,
+        /// whether this simple type is abstract
+        abstract_type: bool,
     },
 
     Builtin {
@@ -60,6 +62,7 @@ impl SimpleType {
                 enumeration: Some(vec![s.to_string()]),
                 ..default()
             },
+            abstract_type: false,
         }
     }
 
@@ -72,6 +75,7 @@ impl SimpleType {
                 pattern: Some(regex.value.clone()),
                 ..default()
             },
+            abstract_type: false,
         }
     }
 

@@ -250,7 +250,7 @@ impl FontoSchemaExporter {
         debug!("Exporting Fonto SimpleType #{}", st.id());
 
         let res = match st {
-            model::SimpleType::Derived { base, restrictions } => {
+            model::SimpleType::Derived { base, restrictions, .. } => {
                 let base = self.export_simple_type(base.resolve(schema), schema)?;
 
                 self.result.push_simple_type(fonto::SimpleType::Derived {

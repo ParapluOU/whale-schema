@@ -91,6 +91,81 @@ pub fn compile_type_definition(
     Ok(type_ref)
 }
 
+/// Compile inheritance clause and validate circular dependencies
+pub fn compile_inheritance(
+    source: &SourcedSchemaFile,
+    blockdef: &ast::TypeDefBlock,
+    inheritance: &ast::Inheritance,
+    schema: &mut Schema,
+) -> anyhow::Result<Ref<model::Group>> {
+    info!("compiling inheritance from {:?}...", inheritance.base_type);
+
+    // Resolve the base type name to a type definition
+    let base_type_name = inheritance.base_type.ident_nonprim()
+        .ok_or(anyhow!("Base type must be a non-primitive type"))?;
+
+    let base_typedef = source.find_type(base_type_name)
+        .ok_or(anyhow!("Base type '{}' not found", base_type_name))?;
+
+    // Base type must be a block definition (complex type), not an inline simple type
+    let base_block = match base_typedef {
+        ast::TypeDef::Block(block) => block,
+        ast::TypeDef::Inline(_) => {
+            return Err(anyhow!(
+                "Cannot inherit from simple type '{}'. Only complex types (blocks) support inheritance.",
+                base_type_name
+            ));
+        }
+    };
+
+    // Detect circular inheritance
+    validate_no_circular_inheritance(source, blockdef, base_block)?;
+
+    // Compile the base type
+    compile_block_definition(source, base_block, schema)
+}
+
+/// Validate that there are no circular inheritance chains
+fn validate_no_circular_inheritance(
+    source: &SourcedSchemaFile,
+    current: &ast::TypeDefBlock,
+    base: &ast::TypeDefBlock,
+) -> anyhow::Result<()> {
+    let mut visited = std::collections::HashSet::new();
+    visited.insert(current.typename.as_ref().to_string());
+
+    let mut current_base = base;
+    loop {
+        let base_name = current_base.typename.as_ref().to_string();
+
+        if visited.contains(&base_name) {
+            return Err(anyhow!(
+                "Circular inheritance detected: {} forms a cycle",
+                base_name
+            ));
+        }
+
+        visited.insert(base_name.clone());
+
+        // Check if this base has its own base
+        if let Some(inheritance) = &current_base.inheritance {
+            if let Some(next_base_name) = inheritance.base_type.ident_nonprim() {
+                if let Some(next_base_typedef) = source.find_type(next_base_name) {
+                    if let ast::TypeDef::Block(next_base_block) = next_base_typedef {
+                        current_base = next_base_block;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // No more inheritance chain
+        break;
+    }
+
+    Ok(())
+}
+
 pub fn compile_block_definition(
     source: &SourcedSchemaFile,
     blockdef: &ast::TypeDefBlock,
@@ -107,7 +182,17 @@ pub fn compile_block_definition(
         info!("attributes: {:#?}", attrs.keys().collect_vec());
     }
 
-    compile_block(source, &blockdef.block, Some(attrs), schema)
+    // Check for abstract modifier
+    let is_abstract = blockdef.block.is_abstract();
+
+    // Process inheritance
+    let base_type = if let Some(inheritance) = &blockdef.inheritance {
+        Some(compile_inheritance(source, blockdef, inheritance, schema)?)
+    } else {
+        None
+    };
+
+    compile_block(source, &blockdef.block, Some(attrs), is_abstract, base_type, schema)
 }
 
 pub fn compile_elements(
@@ -156,7 +241,7 @@ pub fn compile_element(
             }
             // nested element definition
             ElementItem::WithBlock(ast::ElementWithBlock { block, .. }) => {
-                compile_block(source, block, None, schema)?.into()
+                compile_block(source, block, None, false, None, schema)?.into()
             }
         });
 
@@ -297,6 +382,8 @@ pub fn compile_block(
     source: &SourcedSchemaFile,
     block_ast: &ast::Block,
     attributes: Option<model::Attributes>,
+    is_abstract: bool,
+    base_type: Option<Ref<model::Group>>,
     schema: &mut Schema,
 ) -> anyhow::Result<Ref<model::Group>> {
     info!("compiling block definition...");
@@ -306,10 +393,12 @@ pub fn compile_block(
     // which is wrapped in a CompileResult
     let mut builder = GroupBuilder::default();
 
-    // call builder ssetters
+    // call builder setters
     builder
         .ty((&block_ast.mods))
         .mixed(block_ast.is_mixed_content())
+        .abstract_type(is_abstract)
+        .base_type(base_type)
         .attributes(attributes.unwrap_or_default())
         .items(
             block_ast
@@ -321,7 +410,7 @@ pub fn compile_block(
                             compile_element(source, element_item, schema).map(Into::into)
                         }
                         BlockItem::SplatBlock(block) => {
-                            compile_block(source, block.as_ref(), None, schema).map(Into::into)
+                            compile_block(source, block.as_ref(), None, false, None, schema).map(Into::into)
                         }
                         BlockItem::SplatType(ast::SplatType(ty)) => ty
                             .ident_regular()
@@ -340,7 +429,7 @@ pub fn compile_block(
                                 ))
                             })
                             .and_then(|res| {
-                                compile_block(source, &res.block, None, schema).map(Into::into)
+                                compile_block(source, &res.block, None, false, None, schema).map(Into::into)
                             }),
                         BlockItem::SplatGenericArg(_) => todo!("splat generic arg not impl yet"),
                         BlockItem::Comment(txt) => {

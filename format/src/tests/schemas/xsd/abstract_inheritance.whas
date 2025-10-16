@@ -1,0 +1,15 @@
+// Test abstract types combined with inheritance
+// This is the most common XSD pattern: abstract base + concrete derived
+
+// Abstract base type (cannot be instantiated)
+Vehicle: a{
+    #manufacturer: String
+}
+
+// Concrete derived type that extends the abstract base
+Car < Vehicle {
+    #num-doors: Int
+    #model: String
+}
+
+#car: Car

@@ -1,0 +1,15 @@
+// Test abstract types (cannot be directly instantiated)
+
+// Abstract vehicle type
+@vin: ID
+Vehicle: a{
+    #manufacturer: String
+}
+
+// Concrete car type
+Car {
+    #make: String
+    #model: String
+}
+
+#vehicle: Car

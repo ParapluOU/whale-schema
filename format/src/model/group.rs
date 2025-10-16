@@ -25,6 +25,14 @@ pub struct Group {
     #[builder(default)]
     mixed: bool,
 
+    /// whether this type is abstract (cannot be directly instantiated)
+    #[builder(default)]
+    abstract_type: bool,
+
+    /// reference to base type if this type extends another
+    #[builder(default)]
+    base_type: Option<Ref<Group>>,
+
     /// todo: probably needs to support more than only elements
     /// probably also needs control flow objects like groups themselves
     #[builder(default)]
@@ -67,6 +75,14 @@ impl From<&ast::BlockMods> for GroupType {
 }
 
 impl Group {
+    pub fn is_abstract(&self) -> bool {
+        self.abstract_type
+    }
+
+    pub fn extends(&self) -> bool {
+        self.base_type.is_some()
+    }
+
     pub fn contains_element(&self, element: &Ref<model::Element>, schema: &model::Schema) -> bool {
         self.items.iter().any(|item| match item {
             GroupItem::Element(e) => e == element,

@@ -308,6 +308,57 @@ Type definitions may be aliased:
     // alias type
     MyWrapperType: String
 
+#### Abstract Types
+
+Types can be marked as abstract, meaning they cannot be directly instantiated but can serve as base types for other types to extend. Use the 'a' modifier after the type name:
+
+    // Abstract base type
+    Vehicle: a{
+        #manufacturer: String
+    }
+
+    // Cannot create elements directly of type Vehicle
+    // #vehicle: Vehicle  // This would be invalid in XML
+
+Abstract types are commonly used with inheritance to define common structure that derived types will inherit.
+
+#### Inheritance
+
+Types can extend other types using the `<` operator, inheriting all fields from the base type:
+
+    // Base type
+    Vehicle {
+        #manufacturer: String
+    }
+
+    // Derived type that extends Vehicle
+    Car < Vehicle {
+        #num-doors: Int
+        #model: String
+    }
+
+    // Car now has all fields from Vehicle plus its own
+    #my-car: Car
+    // Will have: manufacturer, num-doors, model
+
+The most common pattern combines abstract types with inheritance:
+
+    // Abstract base type (cannot be instantiated)
+    Vehicle: a{
+        #manufacturer: String
+    }
+
+    // Concrete derived type
+    Car < Vehicle {
+        #num-doors: Int
+        #model: String
+    }
+
+    // Valid element declaration
+    #car: Car
+
+When exported to XSD, inheritance is represented using `xs:extension` within `xs:complexContent`, and abstract types use the `abstract="true"` attribute.
+
 #### Extend / Redefine
 
 todo: still needed if we have generic args?

@@ -147,12 +147,20 @@ pub enum TypeDefInlineTyping {
     SimpleType(SimpleTypingInline),
 }
 
+/// Inheritance clause: < BaseType or < BaseType(Arg)
+#[derive(Debug, Eq, PartialEq, Clone, FromPest)]
+#[pest_ast(rule(Rule::inheritance))]
+pub struct Inheritance {
+    pub base_type: TypeName,
+}
+
 #[derive(Debug, Eq, PartialEq, Clone, FromPest)]
 #[pest_ast(rule(Rule::typedef_block))]
 pub struct TypeDefBlock {
     pub attributes: Attributes,
     pub typename: IdentTypeNonPrimitive,
     pub vars: Option<TypeDefVars>,
+    pub inheritance: Option<Inheritance>,
     pub block: Block,
 }
 
