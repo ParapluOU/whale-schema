@@ -1,0 +1,296 @@
+// Complete Example: Blog System Schema
+// This example demonstrates all major WHAS features in a realistic scenario
+
+// ============================================================================
+// UNION TYPES FOR FLEXIBLE VALUES
+// ============================================================================
+
+// Status indicators
+PublishStatus: "draft" | "published" | "archived" | "deleted"
+UserRole: "admin" | "editor" | "author" | "subscriber"
+CommentStatus: "pending" | "approved" | "spam" | "rejected"
+
+// Flexible IDs
+UserId: Int | String
+ContentId: Int | String
+
+// Settings with special values
+ImageSize: Int | "thumbnail" | "medium" | "large" | "full"
+LayoutWidth: Int | "auto" | "fill-parent"
+
+// ============================================================================
+// ABSTRACT BASE TYPES
+// ============================================================================
+
+// Base type for all content
+Content: a{
+    @id: ContentId
+    @created: DateTime
+    @modified: DateTime
+    @status: PublishStatus
+
+    #title: String
+    #slug: String
+}
+
+// Base type for all users
+User: a{
+    @id: UserId
+    @role: UserRole
+    @active: Bool
+
+    #username: String
+    #email: String
+    #display-name: String
+}
+
+// Base type for media
+Media: a{
+    @id: ID
+    @type: String
+
+    #filename: String
+    #url: URI
+    #uploaded: DateTime
+}
+
+// ============================================================================
+// DERIVED CONTENT TYPES
+// ============================================================================
+
+BlogPost < Content {
+    #author: AuthorInfo
+    #excerpt?: String
+    #content: RichContent
+    #categories*: Category
+    #tags*: Tag
+    #featured-image?: Image
+    #comments*: Comment
+}
+
+Page < Content {
+    #parent-page?: String
+    #template: "default" | "full-width" | "sidebar"
+    #content: RichContent
+}
+
+// ============================================================================
+// DERIVED USER TYPES
+// ============================================================================
+
+Author < User {
+    #bio?: String
+    #avatar?: Image
+    #social-links?: SocialLinks
+    #posts-count: Int
+}
+
+Administrator < User {
+    #permissions+: Permission
+    #last-login: DateTime
+}
+
+Subscriber < User {
+    #subscription-date: Date
+    #newsletter-enabled: Bool
+}
+
+// ============================================================================
+// DERIVED MEDIA TYPES
+// ============================================================================
+
+Image < Media {
+    #width: Int
+    #height: Int
+    #alt-text?: String
+    #caption?: String
+    #sizes*: ImageVariant
+}
+
+Video < Media {
+    #duration: Duration
+    #thumbnail?: Image
+    #codec: String
+}
+
+Document < Media {
+    #file-size: Int
+    #mime-type: String
+}
+
+// ============================================================================
+// SUPPORTING TYPES
+// ============================================================================
+
+// Rich content with mixed text and inline elements
+RichContent: x{
+    #paragraph+: Paragraph
+    #heading*: Heading
+    #list*: List
+    #blockquote*: BlockQuote
+    #code-block*: CodeBlock
+    #image*: Image
+}
+
+Paragraph: x{
+    #strong*: String
+    #em*: String
+    #link*: Link
+    #code*: String
+}
+
+Heading {
+    @level: 1 | 2 | 3 | 4 | 5 | 6
+    #text: String
+}
+
+List {
+    @type: "ordered" | "unordered"
+    #item+: ListItem
+}
+
+ListItem: x{
+    #text: String
+    #nested-list?: List
+}
+
+BlockQuote {
+    #text: String
+    #cite?: String
+}
+
+CodeBlock {
+    @language: String
+    #code: String
+}
+
+Link {
+    @href: URI
+    @target?: "_blank" | "_self" | "_parent" | "_top"
+    #text: String
+}
+
+// Author information
+AuthorInfo {
+    @user-id: UserId
+    #name: String
+    #email?: String
+}
+
+// Category taxonomy
+Category {
+    @id: ID
+    #name: String
+    #slug: String
+    #parent?: ID
+}
+
+// Tag taxonomy
+Tag {
+    #name: String
+    #slug: String
+}
+
+// Comment system
+Comment {
+    @id: ID
+    @status: CommentStatus
+
+    #author-name: String
+    #author-email: String
+    #author-url?: URI
+    #content: String
+    #created: DateTime
+    #replies*: CommentReply
+}
+
+CommentReply {
+    @id: ID
+    #author-name: String
+    #content: String
+    #created: DateTime
+}
+
+// Image variants
+ImageVariant {
+    @size-name: String
+    #url: URI
+    #width: Int
+    #height: Int
+}
+
+// Social media links
+SocialLinks {
+    #twitter?: URI
+    #linkedin?: URI
+    #github?: URI
+    #website?: URI
+}
+
+// Permissions
+Permission {
+    @resource: String
+    @action: String
+}
+
+// ============================================================================
+// SITE CONFIGURATION
+// ============================================================================
+
+SiteSettings !{
+    #site-title: String
+    #site-description: String
+    #site-url: URI
+    #language: Lang
+    #timezone: String
+    #posts-per-page: Int
+    #comments-enabled: Bool
+}
+
+// ============================================================================
+// ROOT ELEMENTS
+// ============================================================================
+
+// Blog structure
+#blog {
+    #settings: SiteSettings
+
+    // Users (all role types)
+    #users {
+        #author*: Author
+        #admin*: Administrator
+        #subscriber*: Subscriber
+    }
+
+    // Content
+    #content {
+        #post*: BlogPost
+        #page*: Page
+    }
+
+    // Media library
+    #media {
+        #image*: Image
+        #video*: Video
+        #document*: Document
+    }
+
+    // Taxonomies
+    #taxonomies {
+        #category*: Category
+        #tag*: Tag
+    }
+}
+
+// Single blog post with all features
+@id: ContentId
+@status: PublishStatus
+@featured: Bool
+@allow-comments: Bool
+#article: BlogPost
+
+// Single page
+@id: ContentId
+@template: String
+@parent?: ContentId
+#page-item: Page

@@ -85,4 +85,5 @@ pub enum TypeSimple {
     Primitive(Primitive),
     Regex(TypeRegex),
     Compound(SimpleTypingInline),
+    Union(TypeUnion),
 }

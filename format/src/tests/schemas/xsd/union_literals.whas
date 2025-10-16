@@ -1,0 +1,8 @@
+// Test XSD xs:union with literal value unions (enum replacement)
+// Better alternative to regex enums like /active|inactive|pending/
+
+Status: "active" | "inactive" | "pending"
+Color: "red" | "green" | "blue"
+
+#status: Status
+#color: Color

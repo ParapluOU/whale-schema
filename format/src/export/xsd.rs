@@ -283,14 +283,15 @@ impl XsdExporter {
             xsd.push_str(&self.export_attributes(&attrs, schema, 3)?);
             xsd.push_str("    </xs:complexType>\n");
             xsd.push_str("  </xs:element>\n");
-        } else if let Some(simple_type) = element.typing().simpletype(schema) {
+        } else if let model::TypeRef::Simple(simple_ref) = element.typing() {
+            let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
+
             // Simple type with attributes (simpleContent)
             if has_attrs {
                 xsd.push_str(">\n");
                 xsd.push_str("    <xs:complexType>\n");
                 xsd.push_str("      <xs:simpleContent>\n");
-                let type_name = simple_type.to_type_name(schema);
-                xsd.push_str(&format!("        <xs:extension base=\"xs:{}\">\n", self.map_primitive_to_xsd(&type_name)));
+                xsd.push_str(&format!("        <xs:extension base=\"{}\">\n", type_name));
                 xsd.push_str(&self.export_attributes(&attrs, schema, 5)?);
                 xsd.push_str("        </xs:extension>\n");
                 xsd.push_str("      </xs:simpleContent>\n");
@@ -298,8 +299,7 @@ impl XsdExporter {
                 xsd.push_str("  </xs:element>\n");
             } else {
                 // Simple type without attributes
-                let type_name = simple_type.to_type_name(schema);
-                xsd.push_str(&format!(" type=\"xs:{}\"/>\n", self.map_primitive_to_xsd(&type_name)));
+                xsd.push_str(&format!(" type=\"{}\"/>\n", type_name));
             }
         } else if has_attrs {
             // Attributes only (empty content)
@@ -368,9 +368,9 @@ impl XsdExporter {
         }
 
         // Type reference
-        if let Some(simple_type) = element.typing().simpletype(schema) {
-            let type_name = simple_type.to_type_name(schema);
-            xsd.push_str(&format!(" type=\"xs:{}\"", self.map_primitive_to_xsd(&type_name)));
+        if let model::TypeRef::Simple(simple_ref) = element.typing() {
+            let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
+            xsd.push_str(&format!(" type=\"{}\"", type_name));
             xsd.push_str("/>\n");
         } else if let Some(group_type) = element.typing().grouptype(schema) {
             xsd.push_str(">\n");
@@ -383,6 +383,20 @@ impl XsdExporter {
         }
 
         Ok(xsd)
+    }
+
+    /// Get the XSD type name for a simple type reference
+    /// Checks if the type has a custom name in the schema, otherwise returns the primitive type name
+    fn get_simple_type_xsd_name(&self, simple_ref: &model::Ref<model::SimpleType>, schema: &model::Schema) -> String {
+        // First check if this type has a custom name (like "FlexibleId")
+        if let Some(custom_name) = schema.get_type_name_for_simpletype(simple_ref) {
+            return custom_name;
+        }
+
+        // Otherwise, get the primitive base type and map to XSD
+        let simple_type = simple_ref.resolve(schema);
+        let base_name = simple_type.to_type_name(schema);
+        format!("xs:{}", self.map_primitive_to_xsd(&base_name))
     }
 
     /// Map WHAS primitive type names to XSD type names

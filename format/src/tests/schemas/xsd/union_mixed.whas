@@ -1,0 +1,8 @@
+// Test XSD xs:union with multiple types
+// Combining different primitive types
+
+FlexibleValue: Int | String | Bool
+NumericId: Int | Float
+
+#value: FlexibleValue
+#id: NumericId

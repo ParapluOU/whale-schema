@@ -1,0 +1,264 @@
+// Groups and Modifiers Example
+// This file demonstrates occurrence modifiers, groups, and type splatting
+
+// ============================================================================
+// DUPLICITY MODIFIERS (ON ELEMENTS)
+// ============================================================================
+
+// Optional element (0..1) - postfix with ?
+#optional-element?: String
+
+// Zero or more (0..*) - postfix with *
+#multiple-elements*: String
+
+// One or more (1..*) - postfix with +
+#required-multiple+: String
+
+// Exact count - postfix with [n]
+#exactly-three[3]: String
+
+// Range - postfix with [min..max]
+#between-two-and-five[2..5]: String
+
+// Example structure with various modifiers
+#person {
+    #name: String               // Required, exactly 1
+    #nickname?: String          // Optional
+    #email+: String            // At least 1
+    #phone*: String            // Zero or more
+    #address[1..3]: Address    // Between 1 and 3
+}
+
+Address {
+    #street: String
+    #city: String
+    #country: String
+}
+
+// ============================================================================
+// OCCURRENCE MODIFIERS (ON BLOCKS)
+// ============================================================================
+
+// SEQUENCE (default) - elements must appear in order
+#ordered-sequence {
+    #first: String
+    #second: String
+    #third: String
+}
+// Valid XML: <first/><second/><third/>
+// Invalid XML: <second/><first/><third/>
+
+// CHOICE - only one element must be chosen (prefix with ?)
+#payment-method ?{
+    #credit-card: CreditCard
+    #bank-transfer: BankTransfer
+    #paypal: PayPal
+}
+// Valid XML: either credit-card OR bank-transfer OR paypal
+
+// ALL - all elements must be present, any order (prefix with !)
+#configuration !{
+    #host: String
+    #port: Int
+    #database: String
+}
+// Valid XML: any order of host, port, database
+
+// ============================================================================
+// MIXED CONTENT MODIFIER
+// ============================================================================
+
+// Mixed content - text and elements (prefix with x)
+#paragraph: x{
+    #bold: String
+    #italic: String
+    #link: String
+}
+// Valid XML: <paragraph>Some text <bold>bold text</bold> more text</paragraph>
+
+// Combined modifiers - order doesn't matter
+#flexible-content: ?x{
+    #item: String
+}
+
+#flexible-content2: x?{
+    #item: String
+}
+
+// ============================================================================
+// TYPE DEFINITIONS AND SPLATTING
+// ============================================================================
+
+// Define reusable type
+ContactInfo {
+    #email: String
+    #phone: String
+}
+
+// Splat type into another structure using ...TypeName
+#person {
+    #name: String
+
+    ...ContactInfo  // Includes email and phone fields here
+
+    #address: String
+}
+
+// Equivalent to:
+#person-expanded {
+    #name: String
+    #email: String    // from ContactInfo
+    #phone: String    // from ContactInfo
+    #address: String
+}
+
+// ============================================================================
+// TYPE SPLATTING WITH OCCURRENCE MODIFIERS
+// ============================================================================
+
+// Type with choice modifier
+Credentials: ?{
+    #username: String
+    #password: String
+}
+
+#login {
+    ...Credentials
+}
+
+// Splatted type with modifier
+Options {
+    #setting1: String
+    #setting2: Int
+}
+
+#config {
+    #base-path: String
+
+    ...Options?    // Optional group
+    ...Options*    // Zero or more
+    ...Options[0..3]  // Range
+
+    #extra: String
+}
+
+// ============================================================================
+// INLINE GROUPS
+// ============================================================================
+
+// Group without being a separate type
+#shipping-address {
+    #recipient: String
+
+    // Inline choice group
+    ?{
+        #residential: Address
+        #business: BusinessAddress
+    }
+
+    #instructions?: String
+}
+
+BusinessAddress {
+    #company-name: String
+    #street: String
+    #suite: String
+}
+
+// Inline all group
+#form {
+    !{
+        #field1: String
+        #field2: String
+        #field3: String
+    }
+}
+
+// ============================================================================
+// COMBINING MODIFIERS
+// ============================================================================
+
+// Complex structure with various modifiers
+#order {
+    @id: ID
+    @status: String
+
+    // Required fields
+    #order-number: String
+    #customer: Customer
+
+    // Choice group
+    ?{
+        #pickup: PickupInfo
+        #delivery: DeliveryInfo
+    }
+
+    // One or more items
+    #item+: OrderItem
+
+    // Optional notes (zero or more)
+    #note*: String
+
+    // Optional sections
+    #discount?: Discount
+    #gift-wrap?: GiftWrap
+
+    // Exactly one payment method
+    #payment: Payment
+}
+
+Customer {
+    #name: String
+    #email: String
+}
+
+PickupInfo {
+    #location: String
+    #pickup-time: DateTime
+}
+
+DeliveryInfo {
+    #address: Address
+    #delivery-time: DateTime
+}
+
+OrderItem {
+    @product-id: ID
+    #quantity: Int
+    #unit-price: Float
+}
+
+Discount {
+    @code: String
+    #amount: Float
+}
+
+GiftWrap {
+    #message?: String
+}
+
+Payment ?{
+    #credit-card: CreditCard
+    #cash: CashPayment
+}
+
+CreditCard {
+    #card-number: String
+    #expiry: String
+}
+
+CashPayment {
+    #amount-tendered: Float
+}
+
+// ============================================================================
+// LIST TYPES
+// ============================================================================
+
+// List of references
+#document {
+    #references: [IDRef]
+}
+
+// List with custom separator (if supported)
+#tags: [NameToken]

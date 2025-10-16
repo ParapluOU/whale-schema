@@ -2,7 +2,7 @@
 
 This document shows which XSD features are supported by WHAS and which are not yet implemented.
 
-## ✅ Fully Supported (21 features)
+## ✅ Fully Supported (25 features)
 
 | XSD Feature | WHAS Syntax | Test File | Notes |
 |-------------|-------------|-----------|-------|
@@ -27,28 +27,28 @@ This document shows which XSD features are supported by WHAS and which are not y
 | xs:simpleContent | Simple type + attributes | `simple_content.whas` | Element with text + attrs |
 | xs:complexContent | Child elements | `complex_content.whas` | Default for blocks |
 | Enumeration (via regex) | `/val1\|val2\|val3/` | `facets_enumeration.whas` | Works but not ideal |
+| xs:union | `Type1 \| Type2 \| "literal"` | `union.whas`, `union_literals.whas`, `union_mixed.whas` | Union types with pipe operator |
+| Abstract types | `Type: a{ ... }` | `abstract.whas`, `abstract_inheritance.whas` | Cannot be directly instantiated |
+| Inheritance | `DerivedType < BaseType { ... }` | `inheritance.whas`, `abstract_inheritance.whas` | xs:extension support |
+| Attribute groups | Type splatting with attributes | `attribute_groups.whas` | Via type splatting workaround |
 
-## 🟡 Partially Supported (2 features)
+## 🟡 Partially Supported (1 feature)
 
 | XSD Feature | Status | Test File | Notes |
 |-------------|--------|-----------|-------|
-| Attribute groups | Workaround only | `attribute_groups.whas` | Can use type splatting but no dedicated syntax |
 | Default values | Attributes only? | `default_fixed_values.whas` | Need to verify model::Attribute support |
 
-## ❌ Not Yet Supported (15 features)
+## ❌ Not Yet Supported (11 features)
 
 | XSD Feature | Test File | Roadmap Status | Priority |
 |-------------|-----------|----------------|----------|
 | Namespaces | `namespaces.whas` | Marked as TODO | High |
 | xs:any wildcard | `any_wildcard.whas` | Not mentioned | Medium |
 | xs:anyAttribute | `any_attribute.whas` | Not mentioned | Medium |
-| xs:extension | `extension.whas` | Not mentioned | High |
-| xs:union syntax | `union.whas` | Not mentioned | Medium |
 | Substitution groups | `substitution_groups.whas` | Not mentioned | Low |
 | Identity constraints | `identity_constraints.whas` | Not mentioned | Medium |
 | Fixed values | `default_fixed_values.whas` | Related to default values TODO | Medium |
 | Nillable elements | `nillable.whas` | Not mentioned | Low |
-| Abstract types | `abstract_types.whas` | Not mentioned | Medium |
 | Length facets | `facets_length.whas` | Not mentioned | Medium |
 | Numeric facets | `facets_numeric.whas` | Not mentioned | Medium |
 | whiteSpace facet | `facets_whitespace.whas` | Not mentioned | Low |
@@ -59,14 +59,12 @@ This document shows which XSD features are supported by WHAS and which are not y
 ## Summary
 
 - **Total XSD features tested**: 38
-- **Fully supported**: 21 (55%)
-- **Partially supported**: 2 (5%)
-- **Not supported**: 15 (40%)
+- **Fully supported**: 25 (66%)
+- **Partially supported**: 1 (3%)
+- **Not supported**: 11 (29%)
+- **Recently added**: Union types, Abstract types, Inheritance/Extension
 
 ## Notes
-
-### Union Types
-The model (`model::SimpleType::Union`) appears to have union type support internally, but there's no WHAS syntax for it. Need to investigate if this is used internally only (e.g., for `IDRefs` which is a list) or if syntax should be added.
 
 ### Attribute Groups
 Can be simulated using type splatting, but requires creating a dummy element group with attributes. A dedicated attribute group syntax would be cleaner.
@@ -74,18 +72,17 @@ Can be simulated using type splatting, but requires creating a dummy element gro
 ### Facets
 Only `pattern` (regex) restrictions are supported. All other facets (length, numeric ranges, whitespace) are not yet implemented.
 
-### Inheritance/Extension
-No type inheritance mechanism exists. Fields must be manually duplicated between base and derived types.
+### Union Types
+Union types are now fully supported using the `|` operator syntax (e.g., `Type1 | Type2 | "literal"`). Union types can only contain simple types, not complex types (blocks), as per XSD specification.
 
 ## Recommendations for XSD Export
 
 When implementing an XSD exporter:
 
-1. **High Priority**: Focus on the 21 fully supported features first
+1. **High Priority**: Focus on the 25 fully supported features first
 2. **Namespaces**: Critical for real-world XSD - should be prioritized
-3. **Extension**: Would significantly improve schema reusability
-4. **Additional Facets**: Would improve validation capabilities
-5. **Union Syntax**: If model supports it, add syntax
+3. **Additional Facets**: Would improve validation capabilities (length, numeric ranges)
+4. **Default/Fixed Values**: Would enable more constraint options
 
 ## Test Execution
 

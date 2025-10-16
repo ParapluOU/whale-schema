@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:simpleType name="Color">
+    <xs:union memberTypes="xs:string xs:string xs:string"/>
+  </xs:simpleType>
+  <xs:simpleType name="Status">
+    <xs:union memberTypes="xs:string xs:string xs:string"/>
+  </xs:simpleType>
+  <xs:element name="color" minOccurs="1" maxOccurs="1" type="Color"/>
+  <xs:element name="status" minOccurs="1" maxOccurs="1" type="Status"/>
+</xs:schema>

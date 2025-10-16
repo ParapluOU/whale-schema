@@ -1,0 +1,95 @@
+// Basic Types and Elements Example
+// This file demonstrates primitive types, elements, and attributes
+
+// ============================================================================
+// PRIMITIVE TYPES
+// ============================================================================
+
+// String types
+#title: String
+#description: String
+
+// Numeric types
+#count: Int
+#price: Float
+#quantity: Short
+#total: Decimal
+
+// Boolean
+#enabled: Bool
+
+// Date and time types
+#created: Date
+#updated: DateTime
+#timestamp: DateTimestamp
+#time: Time
+#duration: Duration
+
+// Special types
+#id: ID
+#reference: IDRef
+#uri: URI
+#language: Lang
+
+// ============================================================================
+// ELEMENTS WITH ATTRIBUTES
+// ============================================================================
+
+// Required attribute (default)
+@name: String
+#author: String
+
+// Optional attribute
+@email?: String
+#contact: String
+
+// Multiple attributes
+@type: String
+@format?: String
+@version: Int
+#document: String
+
+// Attribute with different type
+@count: Int
+@active: Bool
+#item: String
+
+// ============================================================================
+// NESTED ELEMENTS (BLOCKS)
+// ============================================================================
+
+// Simple nested structure
+#person {
+    #first-name: String
+    #last-name: String
+    #age: Int
+}
+
+// Nested with attributes
+@status: String
+#employee {
+    @id: ID
+    #name: String
+    #department: String
+    #salary: Float
+}
+
+// ============================================================================
+// EMPTY ELEMENTS
+// ============================================================================
+
+// Element with no content but with attributes
+@href: URI
+@title?: String
+#link {}
+
+// ============================================================================
+// MIXED CONTENT
+// ============================================================================
+
+// Element that can contain text and child elements
+#paragraph: x{
+    #bold: String
+    #italic: String
+    #link: String
+}

@@ -308,6 +308,48 @@ Type definitions may be aliased:
     // alias type
     MyWrapperType: String
 
+#### Union Types
+
+Union types allow a value to be one of several types, similar to TypeScript union types or XSD xs:union. Use the `|` operator to combine multiple types:
+
+    // Basic type union
+    FlexibleId: Int | String
+
+    #user-id: FlexibleId  // Can be either Int or String
+
+Union types support multiple member types:
+
+    // Union of primitive types
+    FlexibleValue: Int | String | Bool
+
+    // Union with literal values (enum-like)
+    Status: "active" | "inactive" | "pending"
+    Color: "red" | "green" | "blue"
+
+    #status: Status
+    #color: Color
+
+    // Union with numeric literals
+    Port: 80 | 443 | 8080
+    YesNo: 0 | 1
+
+Union members can include:
+- Primitive type names (`Int`, `String`, `Bool`, etc.)
+- String literals (`"active"`, `"pending"`)
+- Numeric literals (`0`, `1`, `80`, `443`)
+- Regex patterns (`/\d+/`, `/[a-z]+/`)
+- Type aliases (references to other simple types)
+
+**Important**: XSD unions can only contain simple types. Complex types (blocks) are not allowed in unions:
+
+    // ✓ Valid - all simple types
+    Value: Int | String | "auto"
+
+    // ✗ Invalid - cannot include block types
+    Mixed: Int | MyBlockType
+
+When exported to XSD, union types become `<xs:union>` with `memberTypes` attribute.
+
 #### Abstract Types
 
 Types can be marked as abstract, meaning they cannot be directly instantiated but can serve as base types for other types to extend. Use the 'a' modifier after the type name:

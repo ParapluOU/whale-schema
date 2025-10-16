@@ -256,18 +256,22 @@ fn test_xsd_extension() {
     panic!("WHAS does not yet support type extension (extends keyword)");
 }
 
-/// Test XSD xs:union types (NOT SUPPORTED)
+/// Test XSD xs:union types (SUPPORTED)
 #[test]
-#[should_panic(expected = "WHAS does not yet support union type syntax")]
-fn test_xsd_union() {
-    let _schema = model::Schema::from_file("src/tests/schemas/xsd/union.whas").unwrap();
+fn test_xsd_union() -> Result<()> {
+    assert_xsd_matches_expected("union")
+}
 
-    // TODO: Check model::SimpleType::Union - it exists in the code!
-    // Need to verify if there's syntax for it or if it's only used internally
+/// Test XSD xs:union with literal values
+#[test]
+fn test_xsd_union_literals() -> Result<()> {
+    assert_xsd_matches_expected("union_literals")
+}
 
-    // Expected syntax: Type1 | Type2 | Type3
-
-    panic!("WHAS does not yet support union type syntax (Type1 | Type2)");
+/// Test XSD xs:union with mixed types
+#[test]
+fn test_xsd_union_mixed() -> Result<()> {
+    assert_xsd_matches_expected("union_mixed")
 }
 
 /// Test XSD substitution groups (NOT SUPPORTED)

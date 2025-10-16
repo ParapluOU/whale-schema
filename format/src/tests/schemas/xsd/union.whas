@@ -1,10 +1,6 @@
-// Test XSD xs:union (union of simple types)
-// Check if WHAS supports union types
+// Test XSD xs:union with type unions
+// Union of simple types: Int | String
 
-// Expected: element can be either Int or String
-// XSD: <xs:union memberTypes="xs:int xs:string"/>
+FlexibleId: Int | String
 
-// Hypothetical syntax:
-// FlexibleType: Int | String
-
-#value: String
+#value: FlexibleId

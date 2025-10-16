@@ -320,6 +320,14 @@ impl Schema {
             .and_then(|names| names.iter().next().cloned())
     }
 
+    /// Get the type name for a given SimpleType reference (for XSD export)
+    pub fn get_type_name_for_simpletype(&self, simple_ref: &Ref<SimpleType>) -> Option<String> {
+        // Find the ID's type names
+        self.mapping_type_id_name
+            .get(&simple_ref.0)
+            .and_then(|names| names.iter().next().cloned())
+    }
+
     pub fn get_element(&self, rf: &Ref<Element>) -> Option<&Element> {
         self.elements.get(&*self.typehash_for_id(&rf.0)?)
     }

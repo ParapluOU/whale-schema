@@ -26,6 +26,7 @@ sym_typing_assign = _{ ":" }
 sym_empty = _{ "" }
 sym_schema_var = _{ "$" }
 sym_inherit = _{ "<" }
+sym_union = _{ "|" }
 
 // generic symbols
 sym_mod_opt = { "?" }
@@ -228,7 +229,19 @@ typedef_block = { attributes ~ ident_type_nonprimitive ~ typedef_vars? ~ inherit
 // TaskDesc: String
 typedef_inline = { ident_type_nonprimitive ~ typedef_vars? ~ sym_typing_assign ~ typedef_inline_typing }
 
-typedef_inline_typing = { typename | typevar | simple_compound_inline }
+typedef_inline_typing = { type_union | typename | typevar | simple_compound_inline }
+
+// Union of simple types: Int | String | "literal" | 0
+type_union = { union_member ~ (sym_union ~ union_member)+ }
+
+// Union member can be a type, regex, literal string, typevar, or number
+union_member = {
+    typename       // Type unions: Int | String, or type aliases
+    | type_regex   // Pattern unions: /\d+/ | /\w+/
+    | attr_item_str  // Literal unions: "active" | "pending"
+    | typevar      // Generic vars: T | U (for future generics support)
+    | uint         // Numeric literals: 0 | 1 | 80 | 443
+}
 
 // the 'desc' in: Task(desc) { .. }
 typevar = { ident_lowercase }

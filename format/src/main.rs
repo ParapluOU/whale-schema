@@ -23,7 +23,7 @@ use std::fs::File;
 use std::path::Path;
 use tools::default;
 
-use crate::export::{Exporter, FontoSchemaExporter};
+use crate::export::{Exporter, FontoSchemaExporter, XsdExporter};
 use crate::tools::init_logger;
 pub(crate) use {ast::*, cli::*, validation::*};
 
@@ -60,7 +60,27 @@ fn main() -> anyhow::Result<()> {
     }
 
     if args.xsd {
-        // todo
+        let schema = model::Schema::from_file(&args.input)?;
+
+        // Export to XSD
+        let xsd_output = XsdExporter::default().export_schema(&schema)?;
+
+        // Save to file
+        if let Some(ref dir) = args.output_dir {
+            std::fs::create_dir_all(dir)?;
+
+            let output_filename = Path::new(&args.input)
+                .file_stem()
+                .unwrap()
+                .to_str()
+                .unwrap();
+
+            let output_path = format!("{}/{}.xsd", dir, output_filename);
+            std::fs::write(&output_path, xsd_output)?;
+        } else {
+            // Output to stdout if no output directory specified
+            println!("{}", xsd_output);
+        }
     }
 
     Ok(())

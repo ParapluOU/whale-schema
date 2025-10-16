@@ -262,6 +262,10 @@ pub fn compile_inline_type(
     schema: &mut Schema,
 ) -> anyhow::Result<model::TypeRef> {
     match &element_ast.typing {
+        // Union type: Int | String | "literal"
+        TypeDefInlineTyping::Union(union_ast) => {
+            compile_type_union(source, union_ast, schema)
+        }
         TypeDefInlineTyping::Typename(regularname) => match regularname {
             TypeName::Regular(regulartypename) => {
                 compile_typing_regular(source, regulartypename, schema)
@@ -345,6 +349,68 @@ pub fn compile_typing_var(
     todo!("variable subtitution for type definitions")
 }
 
+/// Compile a union type (Type1 | Type2 | "literal" | 0)
+pub fn compile_type_union(
+    source: &SourcedSchemaFile,
+    union_ast: &ast::TypeUnion,
+    schema: &mut Schema,
+) -> anyhow::Result<model::TypeRef> {
+    info!("compiling union type with {} members...", union_ast.members.len());
+
+    let mut member_types = Vec::new();
+
+    for member in &union_ast.members {
+        let type_ref = match member {
+            ast::UnionMember::TypeName(typename) => {
+                // Compile as a regular type - could be primitive or type alias
+                match typename {
+                    TypeName::Regular(regulartype) => {
+                        compile_typing_regular(source, regulartype, schema)?
+                    }
+                    TypeName::Generic(_) => {
+                        return Err(anyhow!(
+                            "Union members with generic types are not yet supported"
+                        ))
+                    }
+                }
+            }
+            ast::UnionMember::Regex(regex) => {
+                // Register regex as simple type
+                schema.register_simple_type(SimpleType::from_regex(regex, schema))?.into()
+            }
+            ast::UnionMember::Literal(lit) => {
+                // Register literal string as enumeration
+                schema.register_simple_type(SimpleType::static_string(lit, schema))?.into()
+            }
+            ast::UnionMember::Var(_) => {
+                return Err(anyhow!(
+                    "Union members with type variables are not yet supported"
+                ))
+            }
+            ast::UnionMember::Number(num) => {
+                // Register numeric literal as enumeration
+                schema.register_simple_type(SimpleType::static_number(num, schema))?.into()
+            }
+        };
+
+        // Validate that the member is a simple type, not a complex type
+        match type_ref {
+            TypeRef::Simple(simple_ref) => {
+                member_types.push(simple_ref);
+            }
+            TypeRef::Group(_) => {
+                return Err(anyhow!(
+                    "Union members must be simple types. Complex types (blocks) are not allowed in unions. \
+                    This is an XSD limitation - unions can only contain simple types like Int, String, or type aliases to simple types."
+                ))
+            }
+        }
+    }
+
+    // Register the union type
+    Ok(schema.register_simple_type(SimpleType::Union { member_types })?.into())
+}
+
 pub fn resolve_block_def<'a>(
     ast: &'a ast::SchemaFile,
     typedef: &'a ast::TypeDef,
@@ -358,6 +424,10 @@ pub fn resolve_block_def<'a>(
             }
 
             match &inlinedef.typing {
+                ast::TypeDefInlineTyping::Union(_) => {
+                    // unions are simple types, not block definitions
+                    return None;
+                }
                 ast::TypeDefInlineTyping::Typename(ty) => match ty {
                     TypeName::Regular(reg) => {
                         let name = reg.ident_nonprim().unwrap();
@@ -545,6 +615,9 @@ pub fn parse_attribute_type_from_primitive_or_alias(
                     }
 
                     match &inlinedef.typing {
+                        TypeDefInlineTyping::Union(union_ast) => {
+                            compile_type_union(source, union_ast, schema)
+                        }
                         TypeDefInlineTyping::Typename(name) => match name {
                             TypeName::Regular(regulartypename) => {
                                 parse_attribute_type_from_primitive_or_alias(
@@ -648,6 +721,7 @@ pub fn is_independent_type_def(def: &ast::TypeDef) -> bool {
         ast::TypeDef::Inline(ty_inline) => {
             !ty_inline.is_generic()
                 && match &ty_inline.typing {
+                    TypeDefInlineTyping::Union(_) => true, // unions are independent
                     TypeDefInlineTyping::Typename(name) => is_independent_type_name(name),
                     TypeDefInlineTyping::SimpleType(simple) => simple.is_independent_type(),
                     TypeDefInlineTyping::Var(_) => false,

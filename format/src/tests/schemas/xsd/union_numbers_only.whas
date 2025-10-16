@@ -1,0 +1,5 @@
+// Test XSD xs:union with only numeric literals
+
+Port: 80 | 443 | 8080
+
+#port: Port

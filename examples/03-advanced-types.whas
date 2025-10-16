@@ -1,0 +1,224 @@
+// Advanced Types: Abstract Types and Inheritance
+// This file demonstrates abstract types and type inheritance using the < operator
+
+// ============================================================================
+// ABSTRACT TYPES
+// ============================================================================
+
+// Abstract type - cannot be directly instantiated
+// Use 'a' modifier after type name
+Vehicle: a{
+    #manufacturer: String
+    #model: String
+    #year: Int
+}
+
+// Cannot create elements directly of type Vehicle
+// #my-vehicle: Vehicle  // This would be invalid
+
+// ============================================================================
+// INHERITANCE - BASIC
+// ============================================================================
+
+// Derived type that extends Vehicle
+Car < Vehicle {
+    #num-doors: Int
+    #trunk-capacity: Float
+}
+
+// Car now has: manufacturer, model, year (from Vehicle)
+// Plus: num-doors, trunk-capacity (its own fields)
+#my-car: Car
+
+// Another derived type
+Motorcycle < Vehicle {
+    #has-sidecar: Bool
+    #engine-cc: Int
+}
+
+#my-motorcycle: Motorcycle
+
+// ============================================================================
+// INHERITANCE - MULTIPLE LEVELS
+// ============================================================================
+
+// Base type
+Product: a{
+    #name: String
+    #price: Float
+    @sku: String
+}
+
+// Intermediate type
+Electronics < Product {
+    #warranty-months: Int
+    #brand: String
+}
+
+// Further derived type
+Laptop < Electronics {
+    #processor: String
+    #ram-gb: Int
+    #storage-gb: Int
+}
+
+#laptop-item: Laptop
+// Has all fields: name, price, sku, warranty-months, brand, processor, ram-gb, storage-gb
+
+// ============================================================================
+// ABSTRACT + INHERITANCE PATTERN
+// ============================================================================
+
+// This is the most common and recommended pattern
+
+// Abstract base for all shapes
+Shape: a{
+    @id: ID
+    #color: String
+    #border-width: Float
+}
+
+// Concrete shape types
+Circle < Shape {
+    #radius: Float
+}
+
+Rectangle < Shape {
+    #width: Float
+    #height: Float
+}
+
+Triangle < Shape {
+    #base: Float
+    #height: Float
+    #side1: Float
+    #side2: Float
+    #side3: Float
+}
+
+// Valid elements
+#my-circle: Circle
+#my-rectangle: Rectangle
+#my-triangle: Triangle
+
+// Invalid: #my-shape: Shape  // Shape is abstract
+
+// ============================================================================
+// PRACTICAL EXAMPLE: DOCUMENT STRUCTURE
+// ============================================================================
+
+// Abstract base for all document nodes
+Node: a{
+    @id: ID
+    @class?: String
+}
+
+// Content nodes
+TextNode < Node {
+    #content: String
+}
+
+ImageNode < Node {
+    @src: URI
+    @alt: String
+    #caption?: String
+}
+
+LinkNode < Node {
+    @href: URI
+    #text: String
+}
+
+// Container nodes
+Section < Node {
+    #title: String
+    #content*: ContentBlock
+}
+
+ContentBlock: a{
+    @type: String
+}
+
+Paragraph < ContentBlock {
+    #text-node+: TextNode
+    #image?: ImageNode
+}
+
+CodeBlock < ContentBlock {
+    @language: String
+    #code: String
+}
+
+// Document structure
+#document {
+    #header: Section
+    #body: Section
+    #footer?: Section
+}
+
+// ============================================================================
+// TYPE ALIASING WITH INHERITANCE
+// ============================================================================
+
+// Base type
+Person: a{
+    #first-name: String
+    #last-name: String
+}
+
+// Derived types
+Employee < Person {
+    #employee-id: ID
+    #department: String
+}
+
+Customer < Person {
+    #customer-id: ID
+    #email: String
+}
+
+// Aliases for specific contexts
+StaffMember: Employee
+ClientContact: Customer
+
+#staff: StaffMember
+#client: ClientContact
+
+// ============================================================================
+// ATTRIBUTES WITH INHERITANCE
+// ============================================================================
+
+// Attributes are inherited from base types
+
+@version: String
+@created: DateTime
+BaseDocument: a{
+    #title: String
+}
+
+// Derived type inherits @version and @created attributes
+Article < BaseDocument {
+    #author: String
+    #content: String
+}
+
+#my-article: Article
+// Will have attributes: version, created (inherited)
+// And elements: title (inherited), author, content (own)
+
+// Additional attributes on derived type
+@status: String
+@published?: Date
+BlogPost < Article {
+    #tags: String
+    #comments*: Comment
+}
+
+Comment {
+    @author: String
+    #text: String
+    #timestamp: DateTime
+}
+
+#blog-post: BlogPost
+// Will have attributes: version, created (from BaseDocument), status, published (own)

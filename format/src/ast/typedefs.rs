@@ -57,6 +57,9 @@ impl TypeDef {
                     TypeDefInlineTyping::SimpleType(compound) => {
                         return Ok(Some((*compound).clone().into()));
                     }
+                    TypeDefInlineTyping::Union(union) => {
+                        return Ok(Some((*union).clone().into()));
+                    }
                     TypeDefInlineTyping::Typename(ty) => {
                         match ty {
                             TypeName::Regular(TypeWithoutGeneric(IdentType::Primitive(prim))) => {
@@ -139,12 +142,37 @@ impl TypeDefInline {
 #[derive(Debug, Eq, PartialEq, Clone, FromPest)]
 #[pest_ast(rule(Rule::typedef_inline_typing))]
 pub enum TypeDefInlineTyping {
+    // union of simple types
+    Union(TypeUnion),
     // type reference, still unknown if its for attribute or block
     Typename(TypeName),
     // type varibale
     Var(TypeVar),
     // compound simpletype
     SimpleType(SimpleTypingInline),
+}
+
+/// Union of simple types: Int | String | "literal" | 0
+#[derive(Debug, Eq, PartialEq, Clone, FromPest)]
+#[pest_ast(rule(Rule::type_union))]
+pub struct TypeUnion {
+    pub members: Vec<UnionMember>,
+}
+
+/// Individual member of a union type
+#[derive(Debug, Eq, PartialEq, Clone, FromPest)]
+#[pest_ast(rule(Rule::union_member))]
+pub enum UnionMember {
+    /// Type reference (Int, String, or custom type alias)
+    TypeName(TypeName),
+    /// Regex pattern (/\d+/)
+    Regex(TypeRegex),
+    /// String literal ("active")
+    Literal(AttrItemStr),
+    /// Type variable (for generics)
+    Var(TypeVar),
+    /// Numeric literal (0, 1, 80)
+    Number(Uint),
 }
 
 /// Inheritance clause: < BaseType or < BaseType(Arg)

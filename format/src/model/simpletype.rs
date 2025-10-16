@@ -66,6 +66,19 @@ impl SimpleType {
         }
     }
 
+    pub fn static_number(n: &ast::Uint, schema: &model::Schema) -> Self {
+        Self::Derived {
+            base: schema
+                .get_simpletype_ref(&model::PrimitiveType::Int.into())
+                .unwrap(),
+            restrictions: SimpleTypeRestriction {
+                enumeration: Some(vec![n.value.to_string()]),
+                ..default()
+            },
+            abstract_type: false,
+        }
+    }
+
     pub fn from_regex(regex: &ast::TypeRegex, schema: &model::Schema) -> Self {
         Self::Derived {
             base: schema

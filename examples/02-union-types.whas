@@ -1,0 +1,111 @@
+// Union Types Example
+// This file demonstrates the union type syntax using the | operator
+
+// ============================================================================
+// BASIC TYPE UNIONS
+// ============================================================================
+
+// Union of primitive types
+FlexibleId: Int | String
+
+#user-id: FlexibleId
+// Can be: <user-id>12345</user-id> or <user-id>USER-ABC</user-id>
+
+// Union with multiple types
+Value: Int | String | Bool
+
+#setting-value: Value
+// Can be integer, string, or boolean
+
+// ============================================================================
+// LITERAL VALUE UNIONS (ENUM-LIKE)
+// ============================================================================
+
+// Better alternative to regex enums like /active|inactive|pending/
+Status: "active" | "inactive" | "pending" | "cancelled"
+Priority: "low" | "medium" | "high" | "critical"
+Color: "red" | "green" | "blue" | "yellow"
+
+#task-status: Status
+#task-priority: Priority
+#tag-color: Color
+
+// ============================================================================
+// NUMERIC LITERAL UNIONS
+// ============================================================================
+
+// Specific port numbers
+Port: 80 | 443 | 8080 | 8443
+
+// Boolean-like numeric values
+YesNo: 0 | 1
+
+// HTTP status codes
+SuccessCode: 200 | 201 | 204
+
+#server-port: Port
+#enabled: YesNo
+#response-code: SuccessCode
+
+// ============================================================================
+// MIXED UNIONS (TYPES + LITERALS)
+// ============================================================================
+
+// Numeric type with special string values
+Size: Int | "auto" | "inherit" | "none"
+
+#width: Size
+#height: Size
+// Can be: <width>100</width> or <width>auto</width>
+
+// Flexible value that can be calculated or constant
+Dimension: Float | "fill-parent" | "wrap-content"
+
+#layout-width: Dimension
+
+// ============================================================================
+// PRACTICAL EXAMPLES
+// ============================================================================
+
+// API response can be object ID or error message
+ResponseId: Int | "not-found" | "unauthorized" | "error"
+
+#api-response: ResponseId
+
+// Configuration value with defaults
+ConfigValue: String | "default" | "inherit" | "auto"
+
+#config-setting: ConfigValue
+
+// Version identifier - can be number or special keyword
+Version: Float | "latest" | "stable" | "beta"
+
+#app-version: Version
+
+// ============================================================================
+// REGEX IN UNIONS
+// ============================================================================
+
+// Union with pattern validation
+EmailOrId: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/ | Int
+
+#user-identifier: EmailOrId
+// Can be email address or numeric ID
+
+// ============================================================================
+// COMPLETE EXAMPLE
+// ============================================================================
+
+// Type aliases can reference union types
+StatusType: Status
+PriorityLevel: Priority
+
+@status: StatusType
+@priority: PriorityLevel
+@id: FlexibleId
+#task {
+    #title: String
+    #description: String
+    #assigned-to: EmailOrId
+    #port-config: Port
+}
