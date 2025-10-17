@@ -1,6 +1,33 @@
-use crate::export::Exporter;
 use crate::model;
 use anyhow::Result;
+use xmltree::{Element, XMLNode};
+use std::io::Cursor;
+
+/// Helper trait to add fluent-style methods to xmltree::Element
+trait ElementExt {
+    fn with_attr(self, key: impl Into<String>, value: impl Into<String>) -> Self;
+    fn with_child(self, child: Element) -> Self;
+    fn with_prefix(self, prefix: impl Into<String>) -> Self;
+}
+
+impl ElementExt for Element {
+    fn with_attr(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.attributes.insert(key.into(), value.into());
+        self
+    }
+
+    fn with_child(mut self, child: Element) -> Self {
+        self.children.push(XMLNode::Element(child));
+        self
+    }
+
+    fn with_prefix(mut self, prefix: impl Into<String>) -> Self {
+        self.prefix = Some(prefix.into());
+        self
+    }
+}
+
+use crate::export::Exporter;
 
 /// XSD XML Exporter - exports WHAS model to XSD (XML Schema Definition)
 pub struct XsdExporter {
@@ -20,21 +47,15 @@ impl Exporter for XsdExporter {
     type Output = String;
 
     fn export_schema(self, schema: &model::Schema) -> Result<Self::Output> {
-        let mut xsd = String::new();
-
-        // XML declaration
-        xsd.push_str(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
-        xsd.push('\n');
-
-        // xs:schema root element
-        xsd.push_str(r#"<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema""#);
+        // Build xs:schema root element
+        let mut schema_elem = Element::new("schema")
+            .with_prefix("xs")
+            .with_attr("xmlns:xs", "http://www.w3.org/2001/XMLSchema")
+            .with_attr("elementFormDefault", "qualified");
 
         if let Some(ns) = &self.target_namespace {
-            xsd.push_str(&format!(r#" targetNamespace="{}""#, ns));
+            schema_elem = schema_elem.with_attr("targetNamespace", ns);
         }
-
-        xsd.push_str(" elementFormDefault=\"qualified\"");
-        xsd.push_str(">\n");
 
         // Export simple types (primitives are built into XSD, only custom types need export)
         // Sort type names for deterministic output
@@ -44,7 +65,7 @@ impl Exporter for XsdExporter {
         for type_name in &type_names {
             if let Some(simple_type) = schema.get_simpletype_by_name(type_name) {
                 if !simple_type.is_builtin() {
-                    xsd.push_str(&self.export_simple_type(type_name, simple_type, schema)?);
+                    schema_elem = schema_elem.with_child(self.export_simple_type(type_name, simple_type, schema)?);
                 }
             }
         }
@@ -52,7 +73,7 @@ impl Exporter for XsdExporter {
         // Export complex types (groups) - sorted for deterministic output
         for type_name in &type_names {
             if let Some(group) = schema.get_group_by_name(type_name) {
-                xsd.push_str(&self.export_complex_type(type_name, group, schema)?);
+                schema_elem = schema_elem.with_child(self.export_complex_type(type_name, group, schema)?);
             }
         }
 
@@ -62,13 +83,18 @@ impl Exporter for XsdExporter {
         root_elements.sort_by_key(|el| el.name());
 
         for element in &root_elements {
-            xsd.push_str(&self.export_element(element.name(), element, schema)?);
+            schema_elem = schema_elem.with_child(self.export_element(element.name(), element, schema)?);
         }
 
-        // Close schema
-        xsd.push_str("</xs:schema>\n");
+        // Write XML to string with declaration
+        let mut buffer = Cursor::new(Vec::new());
+        schema_elem.write(&mut buffer)?;
 
-        Ok(xsd)
+        let xml_bytes = buffer.into_inner();
+        let xml_content = String::from_utf8(xml_bytes)?;
+
+        // Prepend XML declaration
+        Ok(format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n{}", xml_content))
     }
 }
 
@@ -84,24 +110,24 @@ impl XsdExporter {
         name: &str,
         simple_type: &model::SimpleType,
         schema: &model::Schema,
-    ) -> Result<String> {
-        let mut xsd = String::new();
-
-        xsd.push_str(&format!("  <xs:simpleType name=\"{}\">\n", name));
+    ) -> Result<Element> {
+        let mut simple_type_elem = Element::new("xs:simpleType")
+            .with_attr("name", name);
 
         match simple_type {
             model::SimpleType::Derived { base, restrictions, .. } => {
                 let base_name = base.resolve(schema).to_type_name(schema);
-                xsd.push_str(&format!("    <xs:restriction base=\"xs:{}\">\n",
-                    self.map_primitive_to_xsd(&base_name)));
+                let mut restriction_elem = Element::new("xs:restriction")
+                    .with_attr("base", format!("xs:{}", self.map_primitive_to_xsd(&base_name)));
 
                 // Export all facets using helper
-                xsd.push_str(&self.export_restrictions(restrictions, 3)?);
+                for facet_elem in self.export_restrictions(restrictions)? {
+                    restriction_elem = restriction_elem.with_child(facet_elem);
+                }
 
-                xsd.push_str("    </xs:restriction>\n");
+                simple_type_elem = simple_type_elem.with_child(restriction_elem);
             }
             model::SimpleType::Union { member_types } => {
-                xsd.push_str("    <xs:union memberTypes=\"");
                 let members: Vec<String> = member_types
                     .iter()
                     .map(|t| {
@@ -109,22 +135,27 @@ impl XsdExporter {
                         format!("xs:{}", self.map_primitive_to_xsd(&type_name))
                     })
                     .collect();
-                xsd.push_str(&members.join(" "));
-                xsd.push_str("\"/>\n");
+
+                simple_type_elem = simple_type_elem.with_child(
+                    Element::new("xs:union")
+                        .with_attr("memberTypes", members.join(" "))
+                        
+                );
             }
             model::SimpleType::List { item_type, separator: _ } => {
                 let item_name = item_type.resolve(schema).to_type_name(schema);
-                xsd.push_str(&format!("    <xs:list itemType=\"xs:{}\"/>\n",
-                    self.map_primitive_to_xsd(&item_name)));
+                simple_type_elem = simple_type_elem.with_child(
+                    Element::new("xs:list")
+                        .with_attr("itemType", format!("xs:{}", self.map_primitive_to_xsd(&item_name)))
+                        
+                );
             }
             model::SimpleType::Builtin { .. } => {
                 // Should not reach here - builtins are filtered out
             }
         }
 
-        xsd.push_str("  </xs:simpleType>\n");
-
-        Ok(xsd)
+        Ok(simple_type_elem)
     }
 
     fn export_complex_type(
@@ -132,52 +163,46 @@ impl XsdExporter {
         name: &str,
         group: &model::Group,
         schema: &model::Schema,
-    ) -> Result<String> {
-        let mut xsd = String::new();
+    ) -> Result<Element> {
+        let mut complex_type_elem = Element::new("xs:complexType")
+            .with_attr("name", name);
 
         // Add abstract attribute if type is abstract
         if group.is_abstract() {
-            xsd.push_str(&format!("  <xs:complexType name=\"{}\" abstract=\"true\">\n", name));
-        } else {
-            xsd.push_str(&format!("  <xs:complexType name=\"{}\">\n", name));
+            complex_type_elem = complex_type_elem.with_attr("abstract", "true");
         }
 
         // Handle inheritance with xs:extension
         if let Some(base_ref) = group.base_type() {
-            let base_group = base_ref.resolve(schema);
             // Find the base type name
             if let Some(base_name) = schema.get_type_name_for_group(base_ref) {
-                xsd.push_str("    <xs:complexContent>\n");
-                xsd.push_str(&format!("      <xs:extension base=\"{}\">\n", base_name));
+                let mut extension_elem = Element::new("xs:extension")
+                    .with_attr("base", base_name);
 
                 // Export only local fields (not inherited)
-                xsd.push_str(&self.export_group_content_local(group, schema, 4)?);
+                extension_elem = extension_elem.with_child(self.export_group_content_local(group, schema)?);
 
-                xsd.push_str("      </xs:extension>\n");
-                xsd.push_str("    </xs:complexContent>\n");
+                let complex_content_elem = Element::new("xs:complexContent")
+                    .with_child(extension_elem);
+
+                complex_type_elem = complex_type_elem.with_child(complex_content_elem);
             } else {
                 // Fallback if base name not found - export all content
-                xsd.push_str(&self.export_group_content(group, schema, 2)?);
+                complex_type_elem = complex_type_elem.with_child(self.export_group_content(group, schema)?);
             }
         } else {
             // No inheritance - export group content normally
-            xsd.push_str(&self.export_group_content(group, schema, 2)?);
+            complex_type_elem = complex_type_elem.with_child(self.export_group_content(group, schema)?);
         }
 
-        xsd.push_str("  </xs:complexType>\n");
-
-        Ok(xsd)
+        Ok(complex_type_elem)
     }
 
     fn export_group_content(
         &self,
         group: &model::Group,
         schema: &model::Schema,
-        indent_level: usize,
-    ) -> Result<String> {
-        let mut xsd = String::new();
-        let indent = "  ".repeat(indent_level);
-
+    ) -> Result<Element> {
         // Determine group type
         let group_tag = match group.ty() {
             model::GroupType::Sequence => "xs:sequence",
@@ -185,25 +210,23 @@ impl XsdExporter {
             model::GroupType::All => "xs:all",
         };
 
-        xsd.push_str(&format!("{}<{}>\n", indent, group_tag));
+        let mut group_elem = Element::new(group_tag);
 
         // Export items
         for item in group.items() {
             match item {
                 model::GroupItem::Element(el_ref) => {
                     let element = el_ref.resolve(schema);
-                    xsd.push_str(&self.export_element_inline(element, schema, indent_level + 1)?);
+                    group_elem = group_elem.with_child(self.export_element_inline(element, schema)?);
                 }
                 model::GroupItem::Group(g_ref) => {
                     let nested_group = g_ref.resolve(schema);
-                    xsd.push_str(&self.export_group_content(nested_group, schema, indent_level + 1)?);
+                    group_elem = group_elem.with_child(self.export_group_content(nested_group, schema)?);
                 }
             }
         }
 
-        xsd.push_str(&format!("{}</{}>\n", indent, group_tag));
-
-        Ok(xsd)
+        Ok(group_elem)
     }
 
     /// Export only local group content (excludes inherited fields from base type)
@@ -211,11 +234,7 @@ impl XsdExporter {
         &self,
         group: &model::Group,
         schema: &model::Schema,
-        indent_level: usize,
-    ) -> Result<String> {
-        let mut xsd = String::new();
-        let indent = "  ".repeat(indent_level);
-
+    ) -> Result<Element> {
         // Determine group type
         let group_tag = match group.ty() {
             model::GroupType::Sequence => "xs:sequence",
@@ -223,7 +242,7 @@ impl XsdExporter {
             model::GroupType::All => "xs:all",
         };
 
-        xsd.push_str(&format!("{}<{}>\n", indent, group_tag));
+        let mut group_elem = Element::new(group_tag);
 
         // Export only local items (all items in this group are local by definition)
         // Inheritance is handled by XSD's extension mechanism
@@ -231,18 +250,16 @@ impl XsdExporter {
             match item {
                 model::GroupItem::Element(el_ref) => {
                     let element = el_ref.resolve(schema);
-                    xsd.push_str(&self.export_element_inline(element, schema, indent_level + 1)?);
+                    group_elem = group_elem.with_child(self.export_element_inline(element, schema)?);
                 }
                 model::GroupItem::Group(g_ref) => {
                     let nested_group = g_ref.resolve(schema);
-                    xsd.push_str(&self.export_group_content(nested_group, schema, indent_level + 1)?);
+                    group_elem = group_elem.with_child(self.export_group_content(nested_group, schema)?);
                 }
             }
         }
 
-        xsd.push_str(&format!("{}</{}>\n", indent, group_tag));
-
-        Ok(xsd)
+        Ok(group_elem)
     }
 
     fn export_element(
@@ -250,17 +267,16 @@ impl XsdExporter {
         name: &str,
         element: &model::Element,
         schema: &model::Schema,
-    ) -> Result<String> {
-        let mut xsd = String::new();
-
-        xsd.push_str(&format!("  <xs:element name=\"{}\"", name));
+    ) -> Result<Element> {
+        let mut elem = Element::new("xs:element")
+            .with_attr("name", name);
 
         // Add occurrence constraints
-        xsd.push_str(&format!(" minOccurs=\"{}\"", element.min_occurs()));
+        elem = elem.with_attr("minOccurs", element.min_occurs().to_string());
         if let Some(max) = element.max_occurs() {
-            xsd.push_str(&format!(" maxOccurs=\"{}\"", max));
+            elem = elem.with_attr("maxOccurs", max.to_string());
         } else {
-            xsd.push_str(" maxOccurs=\"unbounded\"");
+            elem = elem.with_attr("maxOccurs", "unbounded");
         }
 
         // Get attributes
@@ -269,17 +285,20 @@ impl XsdExporter {
 
         // Check if it has complex type
         if let Some(group_type) = element.typing().grouptype(schema) {
-            xsd.push_str(">\n");
             // Check for mixed content
+            let mut complex_type_elem = Element::new("xs:complexType");
             if element.is_mixed_content(schema) {
-                xsd.push_str("    <xs:complexType mixed=\"true\">\n");
-            } else {
-                xsd.push_str("    <xs:complexType>\n");
+                complex_type_elem = complex_type_elem.with_attr("mixed", "true");
             }
-            xsd.push_str(&self.export_group_content(group_type, schema, 3)?);
-            xsd.push_str(&self.export_attributes(&attrs, schema, 3)?);
-            xsd.push_str("    </xs:complexType>\n");
-            xsd.push_str("  </xs:element>\n");
+
+            complex_type_elem = complex_type_elem.with_child(self.export_group_content(group_type, schema)?);
+
+            // Add attributes
+            for attr_elem in self.export_attributes(&attrs, schema)? {
+                complex_type_elem = complex_type_elem.with_child(attr_elem);
+            }
+
+            elem = elem.with_child(complex_type_elem);
         } else if let model::TypeRef::Simple(simple_ref) = element.typing() {
             let simple_type = simple_ref.resolve(schema);
 
@@ -289,70 +308,78 @@ impl XsdExporter {
 
             // Simple type with attributes (simpleContent)
             if has_attrs {
-                xsd.push_str(">\n");
-                xsd.push_str("    <xs:complexType>\n");
-                xsd.push_str("      <xs:simpleContent>\n");
+                let mut complex_type_elem = Element::new("xs:complexType");
+                let mut simple_content_elem = Element::new("xs:simpleContent");
 
                 if is_anonymous_union {
                     // For anonymous unions with attributes, we need to define the union inline
                     // Use xs:restriction with an inline simpleType
-                    xsd.push_str("        <xs:restriction>\n");
-                    xsd.push_str(&self.export_simple_type_inline(simple_type, schema, 5)?);
-                    xsd.push_str(&self.export_attributes(&attrs, schema, 5)?);
-                    xsd.push_str("        </xs:restriction>\n");
+                    let mut restriction_elem = Element::new("xs:restriction");
+                    restriction_elem = restriction_elem.with_child(self.export_simple_type_inline(simple_type, schema)?);
+
+                    // Add attributes
+                    for attr_elem in self.export_attributes(&attrs, schema)? {
+                        restriction_elem = restriction_elem.with_child(attr_elem);
+                    }
+
+                    simple_content_elem = simple_content_elem.with_child(restriction_elem);
                 } else {
                     // Named type - use extension
                     let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
-                    xsd.push_str(&format!("        <xs:extension base=\"{}\">\n", type_name));
-                    xsd.push_str(&self.export_attributes(&attrs, schema, 5)?);
-                    xsd.push_str("        </xs:extension>\n");
+                    let mut extension_elem = Element::new("xs:extension")
+                        .with_attr("base", type_name);
+
+                    // Add attributes
+                    for attr_elem in self.export_attributes(&attrs, schema)? {
+                        extension_elem = extension_elem.with_child(attr_elem);
+                    }
+
+                    simple_content_elem = simple_content_elem.with_child(extension_elem);
                 }
 
-                xsd.push_str("      </xs:simpleContent>\n");
-                xsd.push_str("    </xs:complexType>\n");
-                xsd.push_str("  </xs:element>\n");
+                complex_type_elem = complex_type_elem.with_child(simple_content_elem);
+                elem = elem.with_child(complex_type_elem);
             } else {
                 // Simple type without attributes
                 if is_anonymous_union {
                     // Export inline union
-                    xsd.push_str(">\n");
-                    xsd.push_str(&self.export_simple_type_inline(simple_type, schema, 2)?);
-                    xsd.push_str("  </xs:element>\n");
+                    elem = elem.with_child(self.export_simple_type_inline(simple_type, schema)?);
                 } else {
                     let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
-                    xsd.push_str(&format!(" type=\"{}\"/>\n", type_name));
+                    elem = elem.with_attr("type", type_name);
                 }
             }
         } else if has_attrs {
             // Attributes only (empty content)
-            xsd.push_str(">\n");
-            xsd.push_str("    <xs:complexType>\n");
-            xsd.push_str(&self.export_attributes(&attrs, schema, 3)?);
-            xsd.push_str("    </xs:complexType>\n");
-            xsd.push_str("  </xs:element>\n");
+            let mut complex_type_elem = Element::new("xs:complexType");
+
+            // Add attributes
+            for attr_elem in self.export_attributes(&attrs, schema)? {
+                complex_type_elem = complex_type_elem.with_child(attr_elem);
+            }
+
+            elem = elem.with_child(complex_type_elem);
         } else {
-            xsd.push_str("/>\n");
         }
 
-        Ok(xsd)
+        Ok(elem)
     }
 
     fn export_attributes(
         &self,
         attrs: &model::Attributes,
         schema: &model::Schema,
-        indent_level: usize,
-    ) -> Result<String> {
-        let mut xsd = String::new();
-        let indent = "  ".repeat(indent_level);
-
+    ) -> Result<Vec<Element>> {
         // Sort attributes by name for deterministic output
         let mut attr_vec = attrs.as_vec().clone();
         attr_vec.sort_by_key(|attr_ref| attr_ref.resolve(schema).name());
 
+        let mut result = Vec::new();
+
         for attr_ref in attr_vec {
             let attr = attr_ref.resolve(schema);
-            xsd.push_str(&format!("{}<xs:attribute name=\"{}\"", indent, attr.name()));
+            let mut attr_elem = Element::new("xs:attribute")
+                .with_attr("name", attr.name());
 
             // Type - attr.typing is directly a Ref<SimpleType>
             let attr_type = attr.typing.resolve(schema);
@@ -361,43 +388,39 @@ impl XsdExporter {
             if matches!(attr_type, model::SimpleType::Union { .. }) &&
                schema.get_type_name_for_simpletype(&attr.typing).is_none() {
                 // Anonymous inline union - export inline
-                xsd.push_str(">\n");
-                xsd.push_str(&self.export_simple_type_inline(attr_type, schema, indent_level + 1)?);
-                xsd.push_str(&format!("{}</xs:attribute>\n", indent));
+                attr_elem = attr_elem.with_child(self.export_simple_type_inline(attr_type, schema)?);
             } else {
                 // Named type or non-union - use type reference
                 let type_name = self.get_simple_type_xsd_name(&attr.typing, schema);
-                xsd.push_str(&format!(" type=\"{}\"", type_name));
+                attr_elem = attr_elem.with_attr("type", type_name);
 
                 // Required/optional (use="required" vs use="optional")
                 if *attr.required() {
-                    xsd.push_str(" use=\"required\"");
+                    attr_elem = attr_elem.with_attr("use", "required");
                 } // Optional is the default, no need to specify
 
-                xsd.push_str("/>\n");
             }
+
+            result.push(attr_elem);
         }
 
-        Ok(xsd)
+        Ok(result)
     }
 
     fn export_element_inline(
         &self,
         element: &model::Element,
         schema: &model::Schema,
-        indent_level: usize,
-    ) -> Result<String> {
-        let indent = "  ".repeat(indent_level);
-        let mut xsd = String::new();
-
-        xsd.push_str(&format!("{}<xs:element name=\"{}\"", indent, element.name()));
+    ) -> Result<Element> {
+        let mut elem = Element::new("xs:element")
+            .with_attr("name", element.name());
 
         // Occurrence constraints
-        xsd.push_str(&format!(" minOccurs=\"{}\"", element.min_occurs()));
+        elem = elem.with_attr("minOccurs", element.min_occurs().to_string());
         if let Some(max) = element.max_occurs() {
-            xsd.push_str(&format!(" maxOccurs=\"{}\"", max));
+            elem = elem.with_attr("maxOccurs", max.to_string());
         } else {
-            xsd.push_str(" maxOccurs=\"unbounded\"");
+            elem = elem.with_attr("maxOccurs", "unbounded");
         }
 
         // Type reference
@@ -408,26 +431,20 @@ impl XsdExporter {
             if schema.get_type_name_for_simpletype(simple_ref).is_none() &&
                (simple_type.is_derived() || matches!(simple_type, model::SimpleType::Union { .. })) {
                 // Export as anonymous inline simpleType
-                xsd.push_str(">\n");
-                xsd.push_str(&self.export_simple_type_inline(simple_type, schema, indent_level + 1)?);
-                xsd.push_str(&format!("{}</xs:element>\n", indent));
+                elem = elem.with_child(self.export_simple_type_inline(simple_type, schema)?);
             } else {
                 // Named type reference
                 let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
-                xsd.push_str(&format!(" type=\"{}\"", type_name));
-                xsd.push_str("/>\n");
+                elem = elem.with_attr("type", type_name);
             }
         } else if let Some(group_type) = element.typing().grouptype(schema) {
-            xsd.push_str(">\n");
-            xsd.push_str(&format!("{}  <xs:complexType>\n", indent));
-            xsd.push_str(&self.export_group_content(group_type, schema, indent_level + 2)?);
-            xsd.push_str(&format!("{}  </xs:complexType>\n", indent));
-            xsd.push_str(&format!("{}</xs:element>\n", indent));
+            let mut complex_type_elem = Element::new("xs:complexType");
+            complex_type_elem = complex_type_elem.with_child(self.export_group_content(group_type, schema)?);
+            elem = elem.with_child(complex_type_elem);
         } else {
-            xsd.push_str("/>\n");
         }
 
-        Ok(xsd)
+        Ok(elem)
     }
 
     /// Export an inline anonymous simpleType (for inline facets or inline unions)
@@ -435,25 +452,22 @@ impl XsdExporter {
         &self,
         simple_type: &model::SimpleType,
         schema: &model::Schema,
-        indent_level: usize,
-    ) -> Result<String> {
-        let mut xsd = String::new();
-        let indent = "  ".repeat(indent_level);
-
-        xsd.push_str(&format!("{}<xs:simpleType>\n", indent));
+    ) -> Result<Element> {
+        let mut simple_type_elem = Element::new("xs:simpleType");
 
         match simple_type {
             model::SimpleType::Derived { base, restrictions, .. } => {
                 let base_name = base.resolve(schema).to_type_name(schema);
-                xsd.push_str(&format!("{}  <xs:restriction base=\"xs:{}\">\n", indent,
-                    self.map_primitive_to_xsd(&base_name)));
+                let mut restriction_elem = Element::new("xs:restriction")
+                    .with_attr("base", format!("xs:{}", self.map_primitive_to_xsd(&base_name)));
 
-                xsd.push_str(&self.export_restrictions(restrictions, indent_level + 2)?);
+                for facet_elem in self.export_restrictions(restrictions)? {
+                    restriction_elem = restriction_elem.with_child(facet_elem);
+                }
 
-                xsd.push_str(&format!("{}  </xs:restriction>\n", indent));
+                simple_type_elem = simple_type_elem.with_child(restriction_elem);
             }
             model::SimpleType::Union { member_types } => {
-                xsd.push_str(&format!("{}  <xs:union memberTypes=\"", indent));
                 let members: Vec<String> = member_types
                     .iter()
                     .map(|t| {
@@ -466,51 +480,69 @@ impl XsdExporter {
                         }
                     })
                     .collect();
-                xsd.push_str(&members.join(" "));
-                xsd.push_str("\"/>\n");
+
+                simple_type_elem = simple_type_elem.with_child(
+                    Element::new("xs:union")
+                        .with_attr("memberTypes", members.join(" "))
+                        
+                );
             }
             _ => {
                 // Shouldn't happen for inline types, but handle gracefully
             }
         }
 
-        xsd.push_str(&format!("{}</xs:simpleType>\n", indent));
-
-        Ok(xsd)
+        Ok(simple_type_elem)
     }
 
     /// Export restriction facets (helper for reuse)
     fn export_restrictions(
         &self,
         restrictions: &model::restriction::SimpleTypeRestriction,
-        indent_level: usize,
-    ) -> Result<String> {
-        let mut xsd = String::new();
-        let indent = "  ".repeat(indent_level);
+    ) -> Result<Vec<Element>> {
+        let mut facets = Vec::new();
 
         // Enumeration facet
         if let Some(enumeration) = restrictions.enumeration.as_ref() {
             for value in enumeration {
-                xsd.push_str(&format!("{}<xs:enumeration value=\"{}\"/>\n", indent,
-                    Self::escape_xml(value)));
+                facets.push(
+                    Element::new("xs:enumeration")
+                        .with_attr("value", value)
+                        
+                );
             }
         }
 
         // Length facets
         if let Some(length) = restrictions.length {
-            xsd.push_str(&format!("{}<xs:length value=\"{}\"/>\n", indent, length));
+            facets.push(
+                Element::new("xs:length")
+                    .with_attr("value", length.to_string())
+                    
+            );
         }
         if let Some(min_length) = restrictions.min_length {
-            xsd.push_str(&format!("{}<xs:minLength value=\"{}\"/>\n", indent, min_length));
+            facets.push(
+                Element::new("xs:minLength")
+                    .with_attr("value", min_length.to_string())
+                    
+            );
         }
         if let Some(max_length) = restrictions.max_length {
-            xsd.push_str(&format!("{}<xs:maxLength value=\"{}\"/>\n", indent, max_length));
+            facets.push(
+                Element::new("xs:maxLength")
+                    .with_attr("value", max_length.to_string())
+                    
+            );
         }
 
         // Pattern facet
         if let Some(pattern) = restrictions.pattern.as_ref() {
-            xsd.push_str(&format!("{}<xs:pattern value=\"{}\"/>\n", indent,
-                Self::escape_xml(pattern)));
+            facets.push(
+                Element::new("xs:pattern")
+                    .with_attr("value", pattern)
+                    
+            );
         }
 
         // Whitespace facet
@@ -520,32 +552,60 @@ impl XsdExporter {
                 model::restriction::WhiteSpaceHandling::Replace => "replace",
                 model::restriction::WhiteSpaceHandling::Collapse => "collapse",
             };
-            xsd.push_str(&format!("{}<xs:whiteSpace value=\"{}\"/>\n", indent, ws_value));
+            facets.push(
+                Element::new("xs:whiteSpace")
+                    .with_attr("value", ws_value)
+                    
+            );
         }
 
         // Numeric range facets
         if let Some(min_inclusive) = restrictions.min_inclusive.as_ref() {
-            xsd.push_str(&format!("{}<xs:minInclusive value=\"{}\"/>\n", indent, min_inclusive));
+            facets.push(
+                Element::new("xs:minInclusive")
+                    .with_attr("value", min_inclusive)
+                    
+            );
         }
         if let Some(max_inclusive) = restrictions.max_inclusive.as_ref() {
-            xsd.push_str(&format!("{}<xs:maxInclusive value=\"{}\"/>\n", indent, max_inclusive));
+            facets.push(
+                Element::new("xs:maxInclusive")
+                    .with_attr("value", max_inclusive)
+                    
+            );
         }
         if let Some(min_exclusive) = restrictions.min_exclusive.as_ref() {
-            xsd.push_str(&format!("{}<xs:minExclusive value=\"{}\"/>\n", indent, min_exclusive));
+            facets.push(
+                Element::new("xs:minExclusive")
+                    .with_attr("value", min_exclusive)
+                    
+            );
         }
         if let Some(max_exclusive) = restrictions.max_exclusive.as_ref() {
-            xsd.push_str(&format!("{}<xs:maxExclusive value=\"{}\"/>\n", indent, max_exclusive));
+            facets.push(
+                Element::new("xs:maxExclusive")
+                    .with_attr("value", max_exclusive)
+                    
+            );
         }
 
         // Decimal precision facets
         if let Some(total_digits) = restrictions.total_digits {
-            xsd.push_str(&format!("{}<xs:totalDigits value=\"{}\"/>\n", indent, total_digits));
+            facets.push(
+                Element::new("xs:totalDigits")
+                    .with_attr("value", total_digits.to_string())
+                    
+            );
         }
         if let Some(fraction_digits) = restrictions.fraction_digits {
-            xsd.push_str(&format!("{}<xs:fractionDigits value=\"{}\"/>\n", indent, fraction_digits));
+            facets.push(
+                Element::new("xs:fractionDigits")
+                    .with_attr("value", fraction_digits.to_string())
+                    
+            );
         }
 
-        Ok(xsd)
+        Ok(facets)
     }
 
     /// Get the XSD type name for a simple type reference
@@ -598,14 +658,6 @@ impl XsdExporter {
             "NameTokens" => "NMTOKENS",
             _ => whas_type, // Custom type, use as-is
         }.to_string()
-    }
-
-    fn escape_xml(s: &str) -> String {
-        s.replace('&', "&amp;")
-            .replace('<', "&lt;")
-            .replace('>', "&gt;")
-            .replace('"', "&quot;")
-            .replace('\'', "&apos;")
     }
 }
 
