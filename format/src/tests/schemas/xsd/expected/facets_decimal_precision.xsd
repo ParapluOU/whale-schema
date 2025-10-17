@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:simpleType name="Coordinate">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="8"/>
+      <xs:fractionDigits value="6"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Count">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="5"/>
+      <xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="CryptoCurrency">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="18"/>
+      <xs:fractionDigits value="8"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="HighPrecision">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="20"/>
+      <xs:fractionDigits value="10"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="LimitedDigits">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="15"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Measurement">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="7"/>
+      <xs:fractionDigits value="4"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Money">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0.01"/>
+      <xs:maxInclusive value="999999.99"/>
+      <xs:totalDigits value="10"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PrecisePercentage">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0.0"/>
+      <xs:maxInclusive value="100.0"/>
+      <xs:totalDigits value="5"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Price">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="10"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ScientificValue">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0.0"/>
+      <xs:maxInclusive value="1.0"/>
+      <xs:totalDigits value="10"/>
+      <xs:fractionDigits value="8"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ThreeDecimals">
+    <xs:restriction base="xs:decimal">
+      <xs:fractionDigits value="3"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="TwoDecimals">
+    <xs:restriction base="xs:decimal">
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="WholeNumber">
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="10"/>
+      <xs:fractionDigits value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="count" minOccurs="1" maxOccurs="1" type="Count"/>
+  <xs:element name="crypto" minOccurs="1" maxOccurs="1" type="CryptoCurrency"/>
+  <xs:element name="high-precision" minOccurs="1" maxOccurs="1" type="HighPrecision"/>
+  <xs:element name="latitude" minOccurs="1" maxOccurs="1" type="Coordinate"/>
+  <xs:element name="limited" minOccurs="1" maxOccurs="1" type="LimitedDigits"/>
+  <xs:element name="longitude" minOccurs="1" maxOccurs="1" type="Coordinate"/>
+  <xs:element name="measurement" minOccurs="1" maxOccurs="1" type="Measurement"/>
+  <xs:element name="money" minOccurs="1" maxOccurs="1" type="Money"/>
+  <xs:element name="precise-percentage" minOccurs="1" maxOccurs="1" type="PrecisePercentage"/>
+  <xs:element name="price" minOccurs="1" maxOccurs="1" type="Price"/>
+  <xs:element name="scientific" minOccurs="1" maxOccurs="1" type="ScientificValue"/>
+  <xs:element name="three-decimals" minOccurs="1" maxOccurs="1" type="ThreeDecimals"/>
+  <xs:element name="two-decimals" minOccurs="1" maxOccurs="1" type="TwoDecimals"/>
+  <xs:element name="whole-number" minOccurs="1" maxOccurs="1" type="WholeNumber"/>
+</xs:schema>
+

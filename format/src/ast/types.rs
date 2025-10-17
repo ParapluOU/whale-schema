@@ -51,9 +51,22 @@ pub struct TypeWithVars {
     pub args: Option<TypeDefVars>,
 }
 
+/// TypeName with optional facets
+/// Examples:
+/// - String (regular)
+/// - String<5..20> (with facets)
+/// - List(String) (generic)
+/// - List(String<5..20>) (generic with faceted type arg)
 #[derive(Debug, Eq, PartialEq, Clone, FromPest)]
 #[pest_ast(rule(Rule::typename))]
-pub enum TypeName {
+pub struct TypeName {
+    pub base: TypeNameBase,
+    pub facets: Option<Facets>,
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, FromPest)]
+#[pest_ast(rule(Rule::typename_base))]
+pub enum TypeNameBase {
     Regular(TypeWithoutGeneric),
     Generic(TypeWithGeneric),
 }
@@ -61,21 +74,34 @@ pub enum TypeName {
 impl TypeName {
     /// when the ident cannot be a primitive and should be a complex type reference
     pub fn ident_nonprim(&self) -> Option<&IdentTypeNonPrimitive> {
-        match self {
-            TypeName::Regular(TypeWithoutGeneric(IdentType::NonPrimitive(nonprim))) => {
+        match &self.base {
+            TypeNameBase::Regular(TypeWithoutGeneric(IdentType::NonPrimitive(nonprim))) => {
                 Some(nonprim)
             }
-            TypeName::Generic(TypeWithGeneric { typename, .. }) => Some(typename),
+            TypeNameBase::Generic(TypeWithGeneric { typename, .. }) => Some(typename),
             _ => None,
         }
     }
 
-    /// when the ident shoudl not be generic
+    /// when the ident should not be generic
     pub fn ident_regular(&self) -> Option<&IdentTypeNonPrimitive> {
-        match self {
-            TypeName::Regular(TypeWithoutGeneric(IdentType::NonPrimitive(ty))) => Some(ty),
+        match &self.base {
+            TypeNameBase::Regular(TypeWithoutGeneric(IdentType::NonPrimitive(ty))) => Some(ty),
             _ => None,
         }
+    }
+
+    /// Get the base type identifier (returns clone to avoid lifetime issues)
+    pub fn base_ident(&self) -> IdentType {
+        match &self.base {
+            TypeNameBase::Regular(t) => t.0.clone(),
+            TypeNameBase::Generic(t) => IdentType::NonPrimitive(t.typename.clone()),
+        }
+    }
+
+    /// Check if this typename has facets
+    pub fn has_facets(&self) -> bool {
+        self.facets.is_some()
     }
 }
 

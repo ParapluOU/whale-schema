@@ -1,0 +1,164 @@
+// Test combined facets
+// Tests: Multiple facets on same type
+
+// ============================================================================
+// STRING: LENGTH + PATTERN
+// ============================================================================
+
+// Password: length + complexity pattern
+StrongPassword: String<
+    minLength: 12,
+    maxLength: 128,
+    pattern: /[A-Za-z0-9@#$%^&*]+/
+>
+
+// Username: length + allowed characters
+ValidUsername: String<
+    3..20,
+    pattern: /[a-zA-Z0-9_-]+/
+>
+
+// Email with length constraint
+BoundedEmail: String<
+    5..100,
+    pattern: /[^@]+@[^@]+\.[^@]+/
+>
+
+#password: StrongPassword
+#username: ValidUsername
+#email: BoundedEmail
+
+// ============================================================================
+// STRING: LENGTH + WHITESPACE
+// ============================================================================
+
+// Normalized name with length
+PersonName: String<1..100, whiteSpace: "collapse">
+
+// Token with constraints
+AuthToken: String<32..256, whiteSpace: "collapse">
+
+// Code with preserved formatting
+SourceCode: String<1.., whiteSpace: "preserve">
+
+#name: PersonName
+#token: AuthToken
+#code: SourceCode
+
+// ============================================================================
+// STRING: PATTERN + WHITESPACE
+// ============================================================================
+
+// Phone number normalized
+PhoneNumber: String<
+    pattern: /\+?[0-9\s\-()]+/,
+    whiteSpace: "collapse"
+>
+
+// Identifier normalized
+NormalizedId: String<
+    pattern: /[a-zA-Z][a-zA-Z0-9_]*/,
+    whiteSpace: "collapse"
+>
+
+#phone: PhoneNumber
+#id: NormalizedId
+
+// ============================================================================
+// STRING: ALL THREE
+// ============================================================================
+
+// Comprehensive validation
+SecureToken: String<
+    minLength: 16,
+    maxLength: 64,
+    pattern: /[A-Fa-f0-9]+/,
+    whiteSpace: "collapse"
+>
+
+#secure-token: SecureToken
+
+// ============================================================================
+// NUMERIC: RANGE + PRECISION
+// ============================================================================
+
+// Money: range + decimal precision
+Price: Decimal<
+    0.01..999999.99,
+    totalDigits: 10,
+    fractionDigits: 2
+>
+
+// Percentage with precision
+Percentage: Decimal<
+    minInclusive: 0.0,
+    maxInclusive: 100.0,
+    fractionDigits: 2
+>
+
+// Coordinate with range and precision
+Latitude: Decimal<
+    minInclusive: -90.0,
+    maxInclusive: 90.0,
+    totalDigits: 8,
+    fractionDigits: 6
+>
+
+Longitude: Decimal<
+    minInclusive: -180.0,
+    maxInclusive: 180.0,
+    totalDigits: 9,
+    fractionDigits: 6
+>
+
+#price: Price
+#percentage: Percentage
+#lat: Latitude
+#lon: Longitude
+
+// ============================================================================
+// NUMERIC: EXCLUSIVE BOUNDS + PRECISION
+// ============================================================================
+
+// Probability (0, 1) with precision
+Probability: Decimal<
+    minExclusive: 0.0,
+    maxExclusive: 1.0,
+    fractionDigits: 4
+>
+
+// Positive money with precision
+PositiveAmount: Decimal<
+    minExclusive: 0.0,
+    totalDigits: 10,
+    fractionDigits: 2
+>
+
+#probability: Probability
+#amount: PositiveAmount
+
+// ============================================================================
+// DIFFERENT BASE TYPES
+// ============================================================================
+
+// Integer with range
+Age: Int<0..150>
+
+// Float with range
+Score: Float<0.0..100.0>
+
+// Decimal with everything
+Money: Decimal<
+    minInclusive: 0.01,
+    maxInclusive: 999999.99,
+    totalDigits: 10,
+    fractionDigits: 2
+>
+
+// Short with range
+SmallNumber: Short<-1000..1000>
+
+#age: Age
+#score: Score
+#money: Money
+#small: SmallNumber

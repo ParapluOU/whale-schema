@@ -95,11 +95,8 @@ impl XsdExporter {
                 xsd.push_str(&format!("    <xs:restriction base=\"xs:{}\">\n",
                     self.map_primitive_to_xsd(&base_name)));
 
-                // Export restrictions
-                if let Some(pattern) = restrictions.pattern.as_ref() {
-                    xsd.push_str(&format!("      <xs:pattern value=\"{}\"/>\n",
-                        Self::escape_xml(pattern)));
-                }
+                // Export all facets using helper
+                xsd.push_str(&self.export_restrictions(restrictions, 3)?);
 
                 xsd.push_str("    </xs:restriction>\n");
             }
@@ -369,9 +366,32 @@ impl XsdExporter {
 
         // Type reference
         if let model::TypeRef::Simple(simple_ref) = element.typing() {
-            let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
-            xsd.push_str(&format!(" type=\"{}\"", type_name));
-            xsd.push_str("/>\n");
+            let simple_type = simple_ref.resolve(schema);
+
+            // Check if this is an anonymous type with restrictions (inline facets)
+            if schema.get_type_name_for_simpletype(simple_ref).is_none() && simple_type.is_derived() {
+                // Export as anonymous inline simpleType
+                xsd.push_str(">\n");
+                xsd.push_str(&format!("{}  <xs:simpleType>\n", indent));
+
+                if let model::SimpleType::Derived { base, restrictions, .. } = simple_type {
+                    let base_name = base.resolve(schema).to_type_name(schema);
+                    xsd.push_str(&format!("{}    <xs:restriction base=\"xs:{}\">\n", indent,
+                        self.map_primitive_to_xsd(&base_name)));
+
+                    xsd.push_str(&self.export_restrictions(restrictions, indent_level + 2)?);
+
+                    xsd.push_str(&format!("{}    </xs:restriction>\n", indent));
+                }
+
+                xsd.push_str(&format!("{}  </xs:simpleType>\n", indent));
+                xsd.push_str(&format!("{}</xs:element>\n", indent));
+            } else {
+                // Named type reference
+                let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
+                xsd.push_str(&format!(" type=\"{}\"", type_name));
+                xsd.push_str("/>\n");
+            }
         } else if let Some(group_type) = element.typing().grouptype(schema) {
             xsd.push_str(">\n");
             xsd.push_str(&format!("{}  <xs:complexType>\n", indent));
@@ -380,6 +400,75 @@ impl XsdExporter {
             xsd.push_str(&format!("{}</xs:element>\n", indent));
         } else {
             xsd.push_str("/>\n");
+        }
+
+        Ok(xsd)
+    }
+
+    /// Export restriction facets (helper for reuse)
+    fn export_restrictions(
+        &self,
+        restrictions: &model::restriction::SimpleTypeRestriction,
+        indent_level: usize,
+    ) -> Result<String> {
+        let mut xsd = String::new();
+        let indent = "  ".repeat(indent_level);
+
+        // Enumeration facet
+        if let Some(enumeration) = restrictions.enumeration.as_ref() {
+            for value in enumeration {
+                xsd.push_str(&format!("{}<xs:enumeration value=\"{}\"/>\n", indent,
+                    Self::escape_xml(value)));
+            }
+        }
+
+        // Length facets
+        if let Some(length) = restrictions.length {
+            xsd.push_str(&format!("{}<xs:length value=\"{}\"/>\n", indent, length));
+        }
+        if let Some(min_length) = restrictions.min_length {
+            xsd.push_str(&format!("{}<xs:minLength value=\"{}\"/>\n", indent, min_length));
+        }
+        if let Some(max_length) = restrictions.max_length {
+            xsd.push_str(&format!("{}<xs:maxLength value=\"{}\"/>\n", indent, max_length));
+        }
+
+        // Pattern facet
+        if let Some(pattern) = restrictions.pattern.as_ref() {
+            xsd.push_str(&format!("{}<xs:pattern value=\"{}\"/>\n", indent,
+                Self::escape_xml(pattern)));
+        }
+
+        // Whitespace facet
+        if let Some(white_space) = restrictions.white_space {
+            let ws_value = match white_space {
+                model::restriction::WhiteSpaceHandling::Preserve => "preserve",
+                model::restriction::WhiteSpaceHandling::Replace => "replace",
+                model::restriction::WhiteSpaceHandling::Collapse => "collapse",
+            };
+            xsd.push_str(&format!("{}<xs:whiteSpace value=\"{}\"/>\n", indent, ws_value));
+        }
+
+        // Numeric range facets
+        if let Some(min_inclusive) = restrictions.min_inclusive.as_ref() {
+            xsd.push_str(&format!("{}<xs:minInclusive value=\"{}\"/>\n", indent, min_inclusive));
+        }
+        if let Some(max_inclusive) = restrictions.max_inclusive.as_ref() {
+            xsd.push_str(&format!("{}<xs:maxInclusive value=\"{}\"/>\n", indent, max_inclusive));
+        }
+        if let Some(min_exclusive) = restrictions.min_exclusive.as_ref() {
+            xsd.push_str(&format!("{}<xs:minExclusive value=\"{}\"/>\n", indent, min_exclusive));
+        }
+        if let Some(max_exclusive) = restrictions.max_exclusive.as_ref() {
+            xsd.push_str(&format!("{}<xs:maxExclusive value=\"{}\"/>\n", indent, max_exclusive));
+        }
+
+        // Decimal precision facets
+        if let Some(total_digits) = restrictions.total_digits {
+            xsd.push_str(&format!("{}<xs:totalDigits value=\"{}\"/>\n", indent, total_digits));
+        }
+        if let Some(fraction_digits) = restrictions.fraction_digits {
+            xsd.push_str(&format!("{}<xs:fractionDigits value=\"{}\"/>\n", indent, fraction_digits));
         }
 
         Ok(xsd)

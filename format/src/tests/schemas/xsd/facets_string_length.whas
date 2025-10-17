@@ -1,0 +1,68 @@
+// Test XSD string length facets
+// Tests: length, minLength, maxLength with shorthand and named syntax
+
+// ============================================================================
+// SHORTHAND RANGE SYNTAX
+// ============================================================================
+
+// Range: minLength..maxLength
+Username: String<5..20>
+Email: String<10..100>
+ShortCode: String<2..8>
+
+#username: Username
+#email: Email
+#short-code: ShortCode
+
+// ============================================================================
+// EXACT LENGTH (SHORTHAND)
+// ============================================================================
+
+// Single number means exact length
+ZipCode: String<5>
+CountryCode: String<2>
+PhoneExtension: String<4>
+
+#zip: ZipCode
+#country: CountryCode
+#extension: PhoneExtension
+
+// ============================================================================
+// OPEN-ENDED RANGES
+// ============================================================================
+
+// Minimum only
+Description: String<10..>
+LongText: String<100..>
+
+#description: Description
+#text: LongText
+
+// Maximum only
+Abbreviation: String<..10>
+ShortName: String<..50>
+
+#abbr: Abbreviation
+#short-name: ShortName
+
+// ============================================================================
+// NAMED SYNTAX
+// ============================================================================
+
+// Explicit named facets
+Password: String<minLength: 12>
+Bio: String<maxLength: 500>
+ExactToken: String<length: 8>
+
+#password: Password
+#bio: Bio
+#token: ExactToken
+
+// ============================================================================
+// MIXED NAMED AND SHORTHAND
+// ============================================================================
+
+// Both min and max explicitly
+SafePassword: String<minLength: 12, maxLength: 128>
+
+#safe-password: SafePassword

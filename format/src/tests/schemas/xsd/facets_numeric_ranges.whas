@@ -1,0 +1,104 @@
+// Test XSD numeric range facets
+// Tests: minInclusive, maxInclusive, minExclusive, maxExclusive
+
+// ============================================================================
+// SHORTHAND INCLUSIVE RANGES (DEFAULT)
+// ============================================================================
+
+// Range: min..max (both inclusive by default)
+Age: Int<0..150>
+Percentage: Int<0..100>
+Port: Int<1..65535>
+Score: Float<0.0..100.0>
+
+#age: Age
+#percentage: Percentage
+#port: Port
+#score: Score
+
+// ============================================================================
+// NAMED INCLUSIVE RANGES
+// ============================================================================
+
+// Explicit inclusive bounds
+ValidAge: Int<minInclusive: 0, maxInclusive: 150>
+ValidScore: Int<minInclusive: 0, maxInclusive: 100>
+Temperature: Float<minInclusive: -273.15, maxInclusive: 1000.0>
+
+#valid-age: ValidAge
+#valid-score: ValidScore
+#temperature: Temperature
+
+// ============================================================================
+// EXCLUSIVE RANGES
+// ============================================================================
+
+// Strictly positive (> 0)
+PositiveInt: Int<minExclusive: 0>
+PositiveFloat: Float<minExclusive: 0.0>
+
+#positive-int: PositiveInt
+#positive-float: PositiveFloat
+
+// Strictly less than
+BelowHundred: Int<maxExclusive: 100>
+BelowOne: Float<maxExclusive: 1.0>
+
+#below-hundred: BelowHundred
+#below-one: BelowOne
+
+// Both exclusive (open interval)
+Probability: Float<minExclusive: 0.0, maxExclusive: 1.0>
+
+#probability: Probability
+
+// ============================================================================
+// MIXED INCLUSIVE/EXCLUSIVE
+// ============================================================================
+
+// Half-open intervals [min, max)
+HalfOpen1: Float<minInclusive: 0.0, maxExclusive: 1.0>
+
+// Half-open intervals (min, max]
+HalfOpen2: Float<minExclusive: 0.0, maxInclusive: 1.0>
+
+#half-open-1: HalfOpen1
+#half-open-2: HalfOpen2
+
+// ============================================================================
+// OPEN-ENDED RANGES
+// ============================================================================
+
+// Minimum only
+NonNegative: Int<0..>
+AtLeastOne: Int<1..>
+AboveZero: Float<minInclusive: 0.0>
+
+#non-negative: NonNegative
+#at-least-one: AtLeastOne
+#above-zero: AboveZero
+
+// Maximum only
+AtMostHundred: Int<..100>
+BelowMax: Float<maxInclusive: 999.99>
+
+#at-most-hundred: AtMostHundred
+#below-max: BelowMax
+
+// ============================================================================
+// SINGLE BOUND
+// ============================================================================
+
+// Just minimum
+MinimumAge: Int<minInclusive: 18>
+MinimumPrice: Float<minInclusive: 0.01>
+
+#minimum-age: MinimumAge
+#minimum-price: MinimumPrice
+
+// Just maximum
+MaximumCount: Int<maxInclusive: 1000>
+MaximumSize: Float<maxInclusive: 100.0>
+
+#maximum-count: MaximumCount
+#maximum-size: MaximumSize

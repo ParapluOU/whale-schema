@@ -61,12 +61,12 @@ impl TypeDef {
                         return Ok(Some((*union).clone().into()));
                     }
                     TypeDefInlineTyping::Typename(ty) => {
-                        match ty {
-                            TypeName::Regular(TypeWithoutGeneric(IdentType::Primitive(prim))) => {
+                        match &ty.base {
+                            ast::TypeNameBase::Regular(TypeWithoutGeneric(IdentType::Primitive(prim))) => {
                                 return Ok(Some((*prim).clone().into()));
                             }
                             // if its a custom type reference, we have to look up _that_ type now
-                            TypeName::Regular(TypeWithoutGeneric(IdentType::NonPrimitive(
+                            ast::TypeNameBase::Regular(TypeWithoutGeneric(IdentType::NonPrimitive(
                                 nonprim,
                             ))) => {
                                 println!("resolving subtype {:?}...\n", ty);
@@ -75,7 +75,7 @@ impl TypeDef {
                                     .ok_or(anyhow!("could not find Type declaration for '{}' when resolving type {:#?}", nonprim, typing))?
                                     .simple_type(schema);
                             }
-                            TypeName::Generic(_generic_ty) => {
+                            ast::TypeNameBase::Generic(_generic_ty) => {
                                 todo!()
                             }
                         }

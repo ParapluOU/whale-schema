@@ -385,6 +385,50 @@ fn test_xsd_facets_enumeration() -> Result<()> {
     assert_xsd_matches_expected("facets_enumeration")
 }
 
+// ============================================================================
+// FACET TESTS - New angle bracket syntax <...>
+// ============================================================================
+
+/// Test XSD string length facets (minLength, maxLength, length)
+#[test]
+fn test_xsd_facets_string_length() -> Result<()> {
+    assert_xsd_matches_expected("facets_string_length")
+}
+
+/// Test XSD numeric range facets (minInclusive, maxInclusive, minExclusive, maxExclusive)
+#[test]
+fn test_xsd_facets_numeric_ranges() -> Result<()> {
+    assert_xsd_matches_expected("facets_numeric_ranges")
+}
+
+/// Test XSD decimal precision facets (totalDigits, fractionDigits)
+#[test]
+fn test_xsd_facets_decimal_precision() -> Result<()> {
+    assert_xsd_matches_expected("facets_decimal_precision")
+}
+
+/// Test XSD whiteSpace facet (preserve, replace, collapse)
+#[test]
+fn test_xsd_facets_whitespace_new() -> Result<()> {
+    assert_xsd_matches_expected("facets_whitespace_new")
+}
+
+/// Test XSD combined facets (multiple facets on same type)
+#[test]
+fn test_xsd_facets_combined() -> Result<()> {
+    assert_xsd_matches_expected("facets_combined")
+}
+
+/// Test XSD facets with other WHAS features (unions, inheritance, occurrences, etc.)
+#[test]
+fn test_xsd_facets_advanced() -> Result<()> {
+    assert_xsd_matches_expected("facets_advanced")
+}
+
+// ============================================================================
+// OLD FACET TESTS - Legacy tests for unsupported syntax
+// ============================================================================
+
 /// Test XSD whiteSpace facet (NOT SUPPORTED)
 #[test]
 #[should_panic(expected = "WHAS does not yet support whiteSpace facet")]

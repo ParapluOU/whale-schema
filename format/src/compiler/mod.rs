@@ -266,13 +266,8 @@ pub fn compile_inline_type(
         TypeDefInlineTyping::Union(union_ast) => {
             compile_type_union(source, union_ast, schema)
         }
-        TypeDefInlineTyping::Typename(regularname) => match regularname {
-            TypeName::Regular(regulartypename) => {
-                compile_typing_regular(source, regulartypename, schema)
-            }
-            TypeName::Generic(typewithgeneric) => {
-                compile_typing_generic(source, typewithgeneric, schema)
-            }
+        TypeDefInlineTyping::Typename(typename) => {
+            compile_typename(source, typename, schema)
         },
         // the element is typed like an attribute
         TypeDefInlineTyping::SimpleType(inlinetype) => {
@@ -321,10 +316,7 @@ pub fn compile_typing(
     schema: &mut Schema,
 ) -> anyhow::Result<model::TypeRef> {
     match element_ast {
-        Typing::Typename(typename) => match typename {
-            TypeName::Regular(regulartype) => compile_typing_regular(source, regulartype, schema),
-            TypeName::Generic(generic_ty) => compile_typing_generic(source, generic_ty, schema),
-        },
+        Typing::Typename(typename) => compile_typename(source, typename, schema),
         // the contents of an
         Typing::Regex(regexty) => Ok(schema
             .register_simple_type(model::SimpleType::from_regex(regexty, schema))?
@@ -334,6 +326,59 @@ pub fn compile_typing(
         // pass down all variables we encounter in the AST down to
         // the level where they are used, like here
         Typing::Var(var) => compile_typing_var(source, var, schema),
+    }
+}
+
+/// Compile a typename with optional facets
+pub fn compile_typename(
+    source: &SourcedSchemaFile,
+    typename: &ast::TypeName,
+    schema: &mut Schema,
+) -> anyhow::Result<model::TypeRef> {
+    // First compile the base type
+    let base_type = match &typename.base {
+        ast::TypeNameBase::Regular(regulartype) => compile_typing_regular(source, regulartype, schema)?,
+        ast::TypeNameBase::Generic(generic_ty) => compile_typing_generic(source, generic_ty, schema)?,
+    };
+
+    // Apply facets if present
+    if let Some(facets) = &typename.facets {
+        // Get base primitive type to determine facet interpretation
+        if let TypeRef::Simple(simple_ref) = &base_type {
+            let simple_type = simple_ref.resolve(schema);
+            let base_primitive = match simple_type {
+                SimpleType::Builtin { name } => name.clone(),
+                SimpleType::Derived { base, .. } => {
+                    // Get the ultimate base primitive
+                    let mut curr_base = base.resolve(schema);
+                    loop {
+                        match curr_base {
+                            SimpleType::Builtin { name } => break name.clone(),
+                            SimpleType::Derived { base, .. } => {
+                                curr_base = base.resolve(schema);
+                            }
+                            _ => return Err(anyhow!("Facets can only be applied to primitive or derived types"))
+                        }
+                    }
+                }
+                _ => return Err(anyhow!("Facets can only be applied to simple types"))
+            };
+
+            let restrictions = compile_facets(facets, &base_primitive)?;
+
+            // Create a derived type with the facets
+            let faceted_type = SimpleType::Derived {
+                base: simple_ref.clone(),
+                restrictions,
+                abstract_type: false,
+            };
+
+            Ok(schema.register_simple_type(faceted_type)?.into())
+        } else {
+            Err(anyhow!("Facets can only be applied to simple types, not complex types"))
+        }
+    } else {
+        Ok(base_type)
     }
 }
 
@@ -362,17 +407,8 @@ pub fn compile_type_union(
     for member in &union_ast.members {
         let type_ref = match member {
             ast::UnionMember::TypeName(typename) => {
-                // Compile as a regular type - could be primitive or type alias
-                match typename {
-                    TypeName::Regular(regulartype) => {
-                        compile_typing_regular(source, regulartype, schema)?
-                    }
-                    TypeName::Generic(_) => {
-                        return Err(anyhow!(
-                            "Union members with generic types are not yet supported"
-                        ))
-                    }
-                }
+                // Compile typename with potential facets
+                compile_typename(source, typename, schema)?
             }
             ast::UnionMember::Regex(regex) => {
                 // Register regex as simple type
@@ -428,13 +464,13 @@ pub fn resolve_block_def<'a>(
                     // unions are simple types, not block definitions
                     return None;
                 }
-                ast::TypeDefInlineTyping::Typename(ty) => match ty {
-                    TypeName::Regular(reg) => {
+                ast::TypeDefInlineTyping::Typename(ty) => match &ty.base {
+                    ast::TypeNameBase::Regular(reg) => {
                         let name = reg.ident_nonprim().unwrap();
                         let typedef = ast.find_type(name).unwrap();
                         resolve_block_def(ast, typedef)
                     }
-                    TypeName::Generic(_) => {
+                    ast::TypeNameBase::Generic(_) => {
                         todo!("generics still unimpl")
                     }
                 },
@@ -618,17 +654,8 @@ pub fn parse_attribute_type_from_primitive_or_alias(
                         TypeDefInlineTyping::Union(union_ast) => {
                             compile_type_union(source, union_ast, schema)
                         }
-                        TypeDefInlineTyping::Typename(name) => match name {
-                            TypeName::Regular(regulartypename) => {
-                                parse_attribute_type_from_primitive_or_alias(
-                                    source,
-                                    regulartypename,
-                                    schema,
-                                )
-                            }
-                            TypeName::Generic(generic_ty) => {
-                                Ok(compile_typing_generic(source, generic_ty, schema)?)
-                            }
+                        TypeDefInlineTyping::Typename(typename) => {
+                            compile_typename(source, typename, schema)
                         },
                         TypeDefInlineTyping::SimpleType(simpletype) => {
                             parse_type_from_inline(source, simpletype, schema)
@@ -667,9 +694,9 @@ pub fn parse_type_from_inline(
     // its a single type that we can resolve. Could be a primitive, alias or reference to custom type
     else {
         match typing.first_item() {
-            // type definition reference, which wont be generic because we checked for that earlier
-            AttrItem::Simple(TypeName::Regular(regular)) => {
-                parse_attribute_type_from_primitive_or_alias(source, regular, schema)
+            // type definition reference
+            AttrItem::Simple(typename) => {
+                compile_typename(source, typename, schema)
             }
             // regex definition
             AttrItem::TypeRegex(regexdef) => Ok(schema
@@ -736,8 +763,8 @@ pub fn is_independent_type(ty: &ast::TypeDefBlock) -> bool {
 }
 
 pub fn is_independent_type_name(ty: &ast::TypeName) -> bool {
-    match ty {
-        TypeName::Regular(ast::TypeWithoutGeneric(IdentType::Primitive(_))) => true,
+    match &ty.base {
+        ast::TypeNameBase::Regular(ast::TypeWithoutGeneric(IdentType::Primitive(_))) => true,
         // generics
         _ => false,
     }
@@ -756,9 +783,12 @@ pub fn is_independent_block_item(item: &ast::BlockItem) -> bool {
                 }
                 ElementItem::WithType(ast::ElementWithType { typing, .. }) => {
                     match typing {
-                        Typing::Typename(TypeName::Regular(ast::TypeWithoutGeneric(
-                            IdentType::Primitive(_),
-                        ))) => true,
+                        Typing::Typename(typename) => match &typename.base {
+                            ast::TypeNameBase::Regular(ast::TypeWithoutGeneric(
+                                IdentType::Primitive(_),
+                            )) => true,
+                            _ => false,
+                        },
                         Typing::Regex(_) => true,
                         // if theres generics
                         _ => false,
@@ -767,12 +797,120 @@ pub fn is_independent_block_item(item: &ast::BlockItem) -> bool {
             }
         }
         BlockItem::SplatBlock(ast::SplatBlock(block)) => is_independent_block(block),
-        BlockItem::SplatType(ast::SplatType(TypeName::Regular(ast::TypeWithoutGeneric(
-            IdentType::Primitive(_),
-        )))) => true,
+        BlockItem::SplatType(ast::SplatType(typename)) => match &typename.base {
+            ast::TypeNameBase::Regular(ast::TypeWithoutGeneric(IdentType::Primitive(_))) => true,
+            _ => false,
+        },
         BlockItem::SplatGenericArg(_) => false,
         BlockItem::Comment(_) => true,
         // any of the specific branches that were unmatched
         _ => false,
     }
+}
+
+/// Compile facets from AST into SimpleTypeRestriction
+pub fn compile_facets(
+    facets: &ast::Facets,
+    base_primitive: &model::PrimitiveType,
+) -> anyhow::Result<model::restriction::SimpleTypeRestriction> {
+    use model::restriction::SimpleTypeRestriction;
+
+    let mut restriction = SimpleTypeRestriction::default();
+
+    if let Some(facet_list) = &facets.items {
+        for facet_item in &facet_list.items {
+            match facet_item {
+                ast::FacetItem::Shorthand(shorthand) => {
+                    let range = shorthand.parse_range();
+
+                    // Apply shorthand based on base type
+                    match base_primitive {
+                        // String types: shorthand = length constraints
+                        model::PrimitiveType::String => {
+                            if let Some(min) = &range.min {
+                                if let Some(max) = &range.max {
+                                    if min == max {
+                                        // Exact length
+                                        restriction.length = Some(min.parse()?);
+                                    } else {
+                                        // Range
+                                        restriction.min_length = Some(min.parse()?);
+                                        restriction.max_length = Some(max.parse()?);
+                                    }
+                                } else {
+                                    // Min only
+                                    restriction.min_length = Some(min.parse()?);
+                                }
+                            } else if let Some(max) = &range.max {
+                                // Max only
+                                restriction.max_length = Some(max.parse()?);
+                            }
+                        }
+                        // Numeric types: shorthand = value range constraints
+                        model::PrimitiveType::Int
+                        | model::PrimitiveType::Short
+                        | model::PrimitiveType::Float
+                        | model::PrimitiveType::Double
+                        | model::PrimitiveType::Decimal => {
+                            if let Some(min) = &range.min {
+                                restriction.min_inclusive = Some(min.to_string());
+                            }
+                            if let Some(max) = &range.max {
+                                restriction.max_inclusive = Some(max.to_string());
+                            }
+                        }
+                        _ => {
+                            return Err(anyhow!(
+                                "Shorthand range syntax not supported for type {:?}",
+                                base_primitive
+                            ))
+                        }
+                    }
+                }
+                ast::FacetItem::Named(named) => {
+                    let name = named.name.as_str();
+                    let value = named.value.as_string();
+
+                    match name {
+                        // Length facets
+                        "length" => restriction.length = Some(value.parse()?),
+                        "minLength" => restriction.min_length = Some(value.parse()?),
+                        "maxLength" => restriction.max_length = Some(value.parse()?),
+
+                        // Numeric range facets
+                        "minInclusive" => restriction.min_inclusive = Some(value),
+                        "maxInclusive" => restriction.max_inclusive = Some(value),
+                        "minExclusive" => restriction.min_exclusive = Some(value),
+                        "maxExclusive" => restriction.max_exclusive = Some(value),
+
+                        // Precision facets
+                        "totalDigits" => restriction.total_digits = Some(value.parse()?),
+                        "fractionDigits" => restriction.fraction_digits = Some(value.parse()?),
+
+                        // Whitespace facet
+                        "whiteSpace" => {
+                            restriction.white_space = Some(match value.as_str() {
+                                "preserve" => model::restriction::WhiteSpaceHandling::Preserve,
+                                "replace" => model::restriction::WhiteSpaceHandling::Replace,
+                                "collapse" => model::restriction::WhiteSpaceHandling::Collapse,
+                                _ => return Err(anyhow!(
+                                    "Invalid whiteSpace value: '{}'. Must be 'preserve', 'replace', or 'collapse'",
+                                    value
+                                )),
+                            });
+                        }
+
+                        // Pattern facet (from regex value)
+                        "pattern" => restriction.pattern = Some(value),
+
+                        _ => {
+                            return Err(anyhow!("Unknown facet name: '{}'", name));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(restriction)
 }

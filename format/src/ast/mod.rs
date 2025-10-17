@@ -22,6 +22,7 @@ mod attrs;
 mod blocks;
 mod comments;
 mod elements;
+mod facets;
 mod file;
 mod idents;
 mod imports;
@@ -36,9 +37,9 @@ mod types;
 mod typings;
 
 pub use {
-    argvars::*, attrs::*, blocks::*, comments::*, elements::*, file::*, idents::*, imports::*,
-    keywords::*, primitives::*, regex::*, schemas::*, splats::*, symbols::*, typedefs::*, types::*,
-    typings::*,
+    argvars::*, attrs::*, blocks::*, comments::*, elements::*, facets::*, file::*, idents::*,
+    imports::*, keywords::*, primitives::*, regex::*, schemas::*, splats::*, symbols::*,
+    typedefs::*, types::*, typings::*,
 };
 
 // todo: adjust this so we can store the spans in the AST nodes,

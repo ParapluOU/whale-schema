@@ -475,20 +475,20 @@ The arguments on #element declarations take precedence.
 ### Inclusions
 
 Definition files can be split up and may be included using import
-statements at the top of the file. Note that the filename does not need to be enclosed
-as a string like in JS.
+statements at the top of the file. Import paths must be enclosed in quotes
+(either single `'` or double `"`).
 
     // include all Types and elements from other.whas
-    use * from ./other.whas
+    import * from "./other.whas"
 
     // or even shorter
-    use ./other.whas
+    import "./other.whas"
 
     // partial inclusions are done using a Javascript-like import syntax
-    use { MyCustomType, YourType, #our-element } from ./another.whas
+    import { MyCustomType, YourType, #our-element } from "./another.whas"
 
-    // alias types and elements to get around coinflicts with locally named elements
-    use { YourType as MyType } from ./our-stuff.whas
+    // alias types and elements to get around conflicts with locally named elements
+    import { YourType as MyType } from "./our-stuff.whas"
 
 #### Glob Patterns
 
@@ -513,7 +513,3 @@ Import paths support glob patterns using wildcards (`*`) to import from multiple
     import "./glob*"  // matches glob1.whas, glob2.whas, etc.
 
 Glob patterns are resolved relative to the current file's directory and will import all matching `.whas` files.
-
-    // todo: good idea?
-    @from: ./other.whas
-    #use { MyCustomType, YourType, #our-element }

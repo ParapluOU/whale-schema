@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:simpleType name="Age">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="150"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="AuthToken">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="32"/>
+      <xs:maxLength value="256"/>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="BoundedEmail">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="5"/>
+      <xs:maxLength value="100"/>
+      <xs:pattern value="[^@]+@[^@]+\.[^@]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Latitude">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="-90.0"/>
+      <xs:maxInclusive value="90.0"/>
+      <xs:totalDigits value="8"/>
+      <xs:fractionDigits value="6"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Longitude">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="-180.0"/>
+      <xs:maxInclusive value="180.0"/>
+      <xs:totalDigits value="9"/>
+      <xs:fractionDigits value="6"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Money">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0.01"/>
+      <xs:maxInclusive value="999999.99"/>
+      <xs:totalDigits value="10"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="NormalizedId">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-zA-Z][a-zA-Z0-9_]*"/>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Percentage">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0.0"/>
+      <xs:maxInclusive value="100.0"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PersonName">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="100"/>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PhoneNumber">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\+?[0-9\s\-()]+"/>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PositiveAmount">
+    <xs:restriction base="xs:decimal">
+      <xs:minExclusive value="0.0"/>
+      <xs:totalDigits value="10"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Price">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0.01"/>
+      <xs:maxInclusive value="999999.99"/>
+      <xs:totalDigits value="10"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Probability">
+    <xs:restriction base="xs:decimal">
+      <xs:minExclusive value="0.0"/>
+      <xs:maxExclusive value="1.0"/>
+      <xs:fractionDigits value="4"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Score">
+    <xs:restriction base="xs:float">
+      <xs:minInclusive value="0.0"/>
+      <xs:maxInclusive value="100.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="SecureToken">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="16"/>
+      <xs:maxLength value="64"/>
+      <xs:pattern value="[A-Fa-f0-9]+"/>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="SmallNumber">
+    <xs:restriction base="xs:short">
+      <xs:minInclusive value="-1000"/>
+      <xs:maxInclusive value="1000"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="SourceCode">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:whiteSpace value="preserve"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="StrongPassword">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="12"/>
+      <xs:maxLength value="128"/>
+      <xs:pattern value="[A-Za-z0-9@#$%^&amp;*]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ValidUsername">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="3"/>
+      <xs:maxLength value="20"/>
+      <xs:pattern value="[a-zA-Z0-9_-]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="age" minOccurs="1" maxOccurs="1" type="Age"/>
+  <xs:element name="amount" minOccurs="1" maxOccurs="1" type="PositiveAmount"/>
+  <xs:element name="code" minOccurs="1" maxOccurs="1" type="SourceCode"/>
+  <xs:element name="email" minOccurs="1" maxOccurs="1" type="BoundedEmail"/>
+  <xs:element name="id" minOccurs="1" maxOccurs="1" type="NormalizedId"/>
+  <xs:element name="lat" minOccurs="1" maxOccurs="1" type="Latitude"/>
+  <xs:element name="lon" minOccurs="1" maxOccurs="1" type="Longitude"/>
+  <xs:element name="money" minOccurs="1" maxOccurs="1" type="Money"/>
+  <xs:element name="name" minOccurs="1" maxOccurs="1" type="PersonName"/>
+  <xs:element name="password" minOccurs="1" maxOccurs="1" type="StrongPassword"/>
+  <xs:element name="percentage" minOccurs="1" maxOccurs="1" type="Percentage"/>
+  <xs:element name="phone" minOccurs="1" maxOccurs="1" type="PhoneNumber"/>
+  <xs:element name="price" minOccurs="1" maxOccurs="1" type="Price"/>
+  <xs:element name="probability" minOccurs="1" maxOccurs="1" type="Probability"/>
+  <xs:element name="score" minOccurs="1" maxOccurs="1" type="Score"/>
+  <xs:element name="secure-token" minOccurs="1" maxOccurs="1" type="SecureToken"/>
+  <xs:element name="small" minOccurs="1" maxOccurs="1" type="SmallNumber"/>
+  <xs:element name="token" minOccurs="1" maxOccurs="1" type="AuthToken"/>
+  <xs:element name="username" minOccurs="1" maxOccurs="1" type="ValidUsername"/>
+</xs:schema>
+

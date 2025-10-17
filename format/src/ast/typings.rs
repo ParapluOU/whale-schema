@@ -19,7 +19,7 @@ impl SimpleTypingInline {
     /// whether any parts of the compound are generic
     pub fn is_generic(&self) -> bool {
         self.0.iter().any(|v| match v {
-            AttrItem::Simple(TypeName::Generic(_)) => true,
+            AttrItem::Simple(typename) => matches!(&typename.base, ast::TypeNameBase::Generic(_)),
             _ => false,
         })
     }

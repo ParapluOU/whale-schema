@@ -1,0 +1,81 @@
+// Test XSD decimal precision facets
+// Tests: totalDigits, fractionDigits
+
+// ============================================================================
+// BASIC PRECISION
+// ============================================================================
+
+// Money: up to 99999999.99
+Price: Decimal<totalDigits: 10, fractionDigits: 2>
+
+// GPS coordinates: 99.999999
+Coordinate: Decimal<totalDigits: 8, fractionDigits: 6>
+
+// Scientific measurement: 999.9999
+Measurement: Decimal<totalDigits: 7, fractionDigits: 4>
+
+#price: Price
+#latitude: Coordinate
+#longitude: Coordinate
+#measurement: Measurement
+
+// ============================================================================
+// INTEGER ONLY (NO DECIMALS)
+// ============================================================================
+
+// No fractional part allowed
+WholeNumber: Decimal<totalDigits: 10, fractionDigits: 0>
+Count: Decimal<totalDigits: 5, fractionDigits: 0>
+
+#whole-number: WholeNumber
+#count: Count
+
+// ============================================================================
+// HIGH PRECISION
+// ============================================================================
+
+// Scientific calculations
+HighPrecision: Decimal<totalDigits: 20, fractionDigits: 10>
+
+// Currency with high precision
+CryptoCurrency: Decimal<totalDigits: 18, fractionDigits: 8>
+
+#high-precision: HighPrecision
+#crypto: CryptoCurrency
+
+// ============================================================================
+// COMBINED WITH RANGES
+// ============================================================================
+
+// Money with range and precision
+Money: Decimal<0.01..999999.99, totalDigits: 10, fractionDigits: 2>
+
+// Percentage with precision
+PrecisePercentage: Decimal<0.0..100.0, totalDigits: 5, fractionDigits: 2>
+
+// Scientific value with range and precision
+ScientificValue: Decimal<minInclusive: 0.0, maxInclusive: 1.0, totalDigits: 10, fractionDigits: 8>
+
+#money: Money
+#precise-percentage: PrecisePercentage
+#scientific: ScientificValue
+
+// ============================================================================
+// ONLY TOTAL DIGITS
+// ============================================================================
+
+// Just limit total digits
+LimitedDigits: Decimal<totalDigits: 15>
+
+#limited: LimitedDigits
+
+// ============================================================================
+// ONLY FRACTION DIGITS
+// ============================================================================
+
+// Just limit decimal places
+TwoDecimals: Decimal<fractionDigits: 2>
+ThreeDecimals: Decimal<fractionDigits: 3>
+
+#two-decimals: TwoDecimals
+#three-decimals: ThreeDecimals

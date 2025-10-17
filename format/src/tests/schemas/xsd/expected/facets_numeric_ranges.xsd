@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:simpleType name="AboveZero">
+    <xs:restriction base="xs:float">
+      <xs:minInclusive value="0.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Age">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="150"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="AtLeastOne">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="AtMostHundred">
+    <xs:restriction base="xs:integer">
+      <xs:maxInclusive value="100"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="BelowHundred">
+    <xs:restriction base="xs:integer">
+      <xs:maxExclusive value="100"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="BelowMax">
+    <xs:restriction base="xs:float">
+      <xs:maxInclusive value="999.99"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="BelowOne">
+    <xs:restriction base="xs:float">
+      <xs:maxExclusive value="1.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="HalfOpen1">
+    <xs:restriction base="xs:float">
+      <xs:minInclusive value="0.0"/>
+      <xs:maxExclusive value="1.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="HalfOpen2">
+    <xs:restriction base="xs:float">
+      <xs:maxInclusive value="1.0"/>
+      <xs:minExclusive value="0.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="MaximumCount">
+    <xs:restriction base="xs:integer">
+      <xs:maxInclusive value="1000"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="MaximumSize">
+    <xs:restriction base="xs:float">
+      <xs:maxInclusive value="100.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="MinimumAge">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="18"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="MinimumPrice">
+    <xs:restriction base="xs:float">
+      <xs:minInclusive value="0.01"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="NonNegative">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Percentage">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="100"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Port">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="1"/>
+      <xs:maxInclusive value="65535"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PositiveFloat">
+    <xs:restriction base="xs:float">
+      <xs:minExclusive value="0.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PositiveInt">
+    <xs:restriction base="xs:integer">
+      <xs:minExclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Probability">
+    <xs:restriction base="xs:float">
+      <xs:minExclusive value="0.0"/>
+      <xs:maxExclusive value="1.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Score">
+    <xs:restriction base="xs:float">
+      <xs:minInclusive value="0.0"/>
+      <xs:maxInclusive value="100.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Temperature">
+    <xs:restriction base="xs:float">
+      <xs:minInclusive value="-273.15"/>
+      <xs:maxInclusive value="1000.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ValidAge">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="150"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ValidScore">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="100"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="above-zero" minOccurs="1" maxOccurs="1" type="AboveZero"/>
+  <xs:element name="age" minOccurs="1" maxOccurs="1" type="Age"/>
+  <xs:element name="at-least-one" minOccurs="1" maxOccurs="1" type="AtLeastOne"/>
+  <xs:element name="at-most-hundred" minOccurs="1" maxOccurs="1" type="AtMostHundred"/>
+  <xs:element name="below-hundred" minOccurs="1" maxOccurs="1" type="BelowHundred"/>
+  <xs:element name="below-max" minOccurs="1" maxOccurs="1" type="BelowMax"/>
+  <xs:element name="below-one" minOccurs="1" maxOccurs="1" type="BelowOne"/>
+  <xs:element name="half-open-1" minOccurs="1" maxOccurs="1" type="HalfOpen1"/>
+  <xs:element name="half-open-2" minOccurs="1" maxOccurs="1" type="HalfOpen2"/>
+  <xs:element name="maximum-count" minOccurs="1" maxOccurs="1" type="MaximumCount"/>
+  <xs:element name="maximum-size" minOccurs="1" maxOccurs="1" type="MaximumSize"/>
+  <xs:element name="minimum-age" minOccurs="1" maxOccurs="1" type="MinimumAge"/>
+  <xs:element name="minimum-price" minOccurs="1" maxOccurs="1" type="MinimumPrice"/>
+  <xs:element name="non-negative" minOccurs="1" maxOccurs="1" type="NonNegative"/>
+  <xs:element name="percentage" minOccurs="1" maxOccurs="1" type="Percentage"/>
+  <xs:element name="port" minOccurs="1" maxOccurs="1" type="Port"/>
+  <xs:element name="positive-float" minOccurs="1" maxOccurs="1" type="PositiveFloat"/>
+  <xs:element name="positive-int" minOccurs="1" maxOccurs="1" type="PositiveInt"/>
+  <xs:element name="probability" minOccurs="1" maxOccurs="1" type="Probability"/>
+  <xs:element name="score" minOccurs="1" maxOccurs="1" type="Score"/>
+  <xs:element name="temperature" minOccurs="1" maxOccurs="1" type="Temperature"/>
+  <xs:element name="valid-age" minOccurs="1" maxOccurs="1" type="ValidAge"/>
+  <xs:element name="valid-score" minOccurs="1" maxOccurs="1" type="ValidScore"/>
+</xs:schema>

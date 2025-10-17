@@ -1,0 +1,52 @@
+// Test XSD whiteSpace facet
+// Tests: preserve, replace, collapse
+
+// ============================================================================
+// WHITESPACE MODES
+// ============================================================================
+
+// Preserve: Keep all whitespace as-is (including newlines, tabs, multiple spaces)
+PreservedText: String<whiteSpace: "preserve">
+
+// Replace: Replace each tab, newline, carriage return with a single space
+ReplacedText: String<whiteSpace: "replace">
+
+// Collapse: Replace sequences of whitespace with single space, trim leading/trailing
+CollapsedText: String<whiteSpace: "collapse">
+
+#preserved: PreservedText
+#replaced: ReplacedText
+#collapsed: CollapsedText
+
+// ============================================================================
+// COMBINED WITH OTHER FACETS
+// ============================================================================
+
+// Whitespace + length constraints
+Token: String<5..50, whiteSpace: "collapse">
+NormalizedName: String<1..100, whiteSpace: "collapse">
+
+#token: Token
+#name: NormalizedName
+
+// Whitespace + pattern
+NormalizedEmail: String<pattern: /[^@]+@[^@]+/, whiteSpace: "collapse">
+
+#email: NormalizedEmail
+
+// ============================================================================
+// PRACTICAL EXAMPLES
+// ============================================================================
+
+// User input that should collapse whitespace
+SearchQuery: String<1..200, whiteSpace: "collapse">
+
+// Code or data that must preserve formatting
+CodeBlock: String<whiteSpace: "preserve">
+
+// Normalized identifier
+Identifier: String<3..50, pattern: /[a-zA-Z0-9_-]+/, whiteSpace: "collapse">
+
+#search: SearchQuery
+#code: CodeBlock
+#id: Identifier

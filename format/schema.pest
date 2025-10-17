@@ -191,8 +191,9 @@ attr_item_str = @{
 // XSD SimpleType
 type_simple = { primitive | type_regex | simple_compound_inline }
 
-// a Type name that could contain a generic
-typename = { type_with_generic | type_without_generic }
+// a Type name that could contain a generic and/or facets
+typename = { typename_base ~ facets? }
+typename_base = { type_with_generic | type_without_generic }
 
 // the typename in element declarations can include a Regex definition
 typing = { typename | type_regex | typevar }
@@ -227,7 +228,8 @@ inheritance = { sym_inherit ~ typename }
 typedef_block = { attributes ~ ident_type_nonprimitive ~ typedef_vars? ~ inheritance? ~ sym_typing_assign? ~ block }
 
 // TaskDesc: String
-typedef_inline = { ident_type_nonprimitive ~ typedef_vars? ~ sym_typing_assign ~ typedef_inline_typing }
+// Also supports inheritance for simple type restrictions: UserId < BaseId: Int<1000..9999>
+typedef_inline = { ident_type_nonprimitive ~ typedef_vars? ~ inheritance? ~ sym_typing_assign ~ typedef_inline_typing }
 
 typedef_inline_typing = { type_union | typename | typevar | simple_compound_inline }
 
@@ -354,6 +356,48 @@ WHITESPACE = _{ WHITE_SPACE | "\t" | NEWLINE  }
 
 // positive integer type
 uint = { ASCII_DIGIT+ }
+
+// number (integer or decimal, optionally negative)
+number = @{ "-"? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+
+//
+// FACETS
+//
+// Facet constraints using <> angle brackets
+// Examples:
+// - String<5..20>  (minLength: 5, maxLength: 20)
+// - Int<0..150>    (minInclusive: 0, maxInclusive: 150)
+// - Decimal<totalDigits: 10, fractionDigits: 2>
+// - String<5..20, pattern: /regex/, whiteSpace: "collapse">
+facets = { "<" ~ facet_list? ~ ">" }
+facet_list = { facet_item ~ (sym_delim_field ~ facet_item)* }
+
+// Individual facet item - try named first (has explicit `:` marker)
+facet_item = { facet_named | facet_shorthand }
+
+// Shorthand syntax for ranges and exact values
+// - 5..20  (min..max inclusive)
+// - 5      (exact value)
+// - 5..    (min only, open-ended max)
+// - ..20   (max only, open-ended min)
+facet_shorthand = @{
+    (number ~ ".." ~ number?)  // min..max or min..
+    | (".." ~ number)          // ..max
+    | number                   // exact value
+}
+
+// Named facet syntax
+// Examples:
+// - minLength: 5
+// - pattern: /regex/
+// - whiteSpace: "collapse"
+// - totalDigits: 10
+facet_named = { facet_name ~ sym_typing_assign ~ facet_value }
+
+// Facet names can be camelCase (minLength, maxLength, etc.)
+facet_name = @{ ASCII_ALPHA_LOWER ~ (ASCII_ALPHANUMERIC)* }
+
+facet_value = { type_regex | attr_item_str | number }
 
 // primitive types from XSD that we want to exclude from user definitions
 primitive = @{ ("String" | "URI" | "DateTimestamp" | "DateTime" | "Date" | "Time" | "Duration" | "Boolean" | "Bool" | "Integer" | "Int" | "Float" | "Double" | "Short" | "Decimal" | "[IDRef]" | "IDRefs" | "IDRef" | "ID" | "Lang" | "NoColName" | "-Int" | "+Int" | "Token" | "[NameToken]" | "NameTokens" | "NameToken" | "Name" ) ~ !ASCII_ALPHANUMERIC}

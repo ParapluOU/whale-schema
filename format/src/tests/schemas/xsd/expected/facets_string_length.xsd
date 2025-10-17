@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:simpleType name="Abbreviation">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="10"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Bio">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="500"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="CountryCode">
+    <xs:restriction base="xs:string">
+      <xs:length value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Description">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="10"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Email">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="10"/>
+      <xs:maxLength value="100"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ExactToken">
+    <xs:restriction base="xs:string">
+      <xs:length value="8"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="LongText">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="100"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Password">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="12"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PhoneExtension">
+    <xs:restriction base="xs:string">
+      <xs:length value="4"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="SafePassword">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="12"/>
+      <xs:maxLength value="128"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ShortCode">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="2"/>
+      <xs:maxLength value="8"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ShortName">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="50"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Username">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="5"/>
+      <xs:maxLength value="20"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ZipCode">
+    <xs:restriction base="xs:string">
+      <xs:length value="5"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="abbr" minOccurs="1" maxOccurs="1" type="Abbreviation"/>
+  <xs:element name="bio" minOccurs="1" maxOccurs="1" type="Bio"/>
+  <xs:element name="country" minOccurs="1" maxOccurs="1" type="CountryCode"/>
+  <xs:element name="description" minOccurs="1" maxOccurs="1" type="Description"/>
+  <xs:element name="email" minOccurs="1" maxOccurs="1" type="Email"/>
+  <xs:element name="extension" minOccurs="1" maxOccurs="1" type="PhoneExtension"/>
+  <xs:element name="password" minOccurs="1" maxOccurs="1" type="Password"/>
+  <xs:element name="safe-password" minOccurs="1" maxOccurs="1" type="SafePassword"/>
+  <xs:element name="short-code" minOccurs="1" maxOccurs="1" type="ShortCode"/>
+  <xs:element name="short-name" minOccurs="1" maxOccurs="1" type="ShortName"/>
+  <xs:element name="text" minOccurs="1" maxOccurs="1" type="LongText"/>
+  <xs:element name="token" minOccurs="1" maxOccurs="1" type="ExactToken"/>
+  <xs:element name="username" minOccurs="1" maxOccurs="1" type="Username"/>
+  <xs:element name="zip" minOccurs="1" maxOccurs="1" type="ZipCode"/>
+</xs:schema>
