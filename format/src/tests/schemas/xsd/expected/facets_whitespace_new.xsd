@@ -1,63 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
-  <!-- Whitespace modes -->
-  <xs:simpleType name="PreservedText">
-    <xs:restriction base="xs:string">
-      <xs:whiteSpace value="preserve"/>
-    </xs:restriction>
-  </xs:simpleType>
-  <xs:element name="preserved" minOccurs="1" maxOccurs="1" type="PreservedText"/>
-  <xs:simpleType name="ReplacedText">
-    <xs:restriction base="xs:string">
-      <xs:whiteSpace value="replace"/>
-    </xs:restriction>
-  </xs:simpleType>
-  <xs:element name="replaced" minOccurs="1" maxOccurs="1" type="ReplacedText"/>
-  <xs:simpleType name="CollapsedText">
-    <xs:restriction base="xs:string">
-      <xs:whiteSpace value="collapse"/>
-    </xs:restriction>
-  </xs:simpleType>
-  <xs:element name="collapsed" minOccurs="1" maxOccurs="1" type="CollapsedText"/>
-  <!-- Combined with other facets -->
-  <xs:simpleType name="Token">
-    <xs:restriction base="xs:string">
-      <xs:minLength value="5"/>
-      <xs:maxLength value="50"/>
-      <xs:whiteSpace value="collapse"/>
-    </xs:restriction>
-  </xs:simpleType>
-  <xs:element name="token" minOccurs="1" maxOccurs="1" type="Token"/>
-  <xs:simpleType name="NormalizedName">
-    <xs:restriction base="xs:string">
-      <xs:minLength value="1"/>
-      <xs:maxLength value="100"/>
-      <xs:whiteSpace value="collapse"/>
-    </xs:restriction>
-  </xs:simpleType>
-  <xs:element name="name" minOccurs="1" maxOccurs="1" type="NormalizedName"/>
-  <xs:simpleType name="NormalizedEmail">
-    <xs:restriction base="xs:string">
-      <xs:pattern value="[^@]+@[^@]+"/>
-      <xs:whiteSpace value="collapse"/>
-    </xs:restriction>
-  </xs:simpleType>
-  <xs:element name="email" minOccurs="1" maxOccurs="1" type="NormalizedEmail"/>
-  <!-- Practical examples -->
-  <xs:simpleType name="SearchQuery">
-    <xs:restriction base="xs:string">
-      <xs:minLength value="1"/>
-      <xs:maxLength value="200"/>
-      <xs:whiteSpace value="collapse"/>
-    </xs:restriction>
-  </xs:simpleType>
-  <xs:element name="search" minOccurs="1" maxOccurs="1" type="SearchQuery"/>
   <xs:simpleType name="CodeBlock">
     <xs:restriction base="xs:string">
       <xs:whiteSpace value="preserve"/>
     </xs:restriction>
   </xs:simpleType>
-  <xs:element name="code" minOccurs="1" maxOccurs="1" type="CodeBlock"/>
+  <xs:simpleType name="CollapsedText">
+    <xs:restriction base="xs:string">
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
   <xs:simpleType name="Identifier">
     <xs:restriction base="xs:string">
       <xs:minLength value="3"/>
@@ -66,5 +18,51 @@
       <xs:whiteSpace value="collapse"/>
     </xs:restriction>
   </xs:simpleType>
+  <xs:simpleType name="NormalizedEmail">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[^@]+@[^@]+"/>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="NormalizedName">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="100"/>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="PreservedText">
+    <xs:restriction base="xs:string">
+      <xs:whiteSpace value="preserve"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ReplacedText">
+    <xs:restriction base="xs:string">
+      <xs:whiteSpace value="replace"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="SearchQuery">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="200"/>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="TokenText">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="5"/>
+      <xs:maxLength value="50"/>
+      <xs:whiteSpace value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="code" minOccurs="1" maxOccurs="1" type="CodeBlock"/>
+  <xs:element name="collapsed" minOccurs="1" maxOccurs="1" type="CollapsedText"/>
+  <xs:element name="email" minOccurs="1" maxOccurs="1" type="NormalizedEmail"/>
   <xs:element name="id" minOccurs="1" maxOccurs="1" type="Identifier"/>
+  <xs:element name="name" minOccurs="1" maxOccurs="1" type="NormalizedName"/>
+  <xs:element name="preserved" minOccurs="1" maxOccurs="1" type="PreservedText"/>
+  <xs:element name="replaced" minOccurs="1" maxOccurs="1" type="ReplacedText"/>
+  <xs:element name="search" minOccurs="1" maxOccurs="1" type="SearchQuery"/>
+  <xs:element name="token" minOccurs="1" maxOccurs="1" type="TokenText"/>
 </xs:schema>
+

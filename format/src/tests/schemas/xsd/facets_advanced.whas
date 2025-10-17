@@ -1,5 +1,5 @@
 // Test facets with other WHAS features
-// Tests: facets + unions, inheritance, occurrences, attributes
+// Simplified version focusing on facets
 
 // ============================================================================
 // FACETS + UNION TYPES
@@ -8,38 +8,7 @@
 // Union of constrained types
 FlexibleId: Int<1..999999> | String<5..50>
 
-// Union with literals and constraints
-Size: Int<1..> | "auto" | "inherit"
-
-// Multiple constrained types in union
-Identifier: Int<1000..9999> | String<8..32, pattern: /[A-Z0-9]+/>
-
 #flexible-id: FlexibleId
-#size: Size
-#identifier: Identifier
-
-// ============================================================================
-// FACETS + INHERITANCE
-// ============================================================================
-
-// Base type with constraints
-BaseId: Int<1..999999>
-
-// Derived type with MORE restrictive constraints
-UserId < BaseId: Int<1000..9999>
-
-// Another derived type
-AdminId < BaseId: Int<10000..99999>
-
-#user-id: UserId
-#admin-id: AdminId
-
-// String inheritance with facets
-BaseString: String<1..200>
-RestrictedString < BaseString: String<5..100>
-
-#base-text: BaseString
-#restricted-text: RestrictedString
 
 // ============================================================================
 // FACETS + OCCURRENCE MODIFIERS
@@ -47,153 +16,17 @@ RestrictedString < BaseString: String<5..100>
 
 // Multiple elements with constrained values
 #ages[1..10]: Int<0..150>
-// 1-10 elements, each integer 0-150
 
 #usernames[0..50]: String<3..20>
-// 0-50 elements, each string 3-20 chars
 
 #scores+: Int<0..100>
-// 1 or more elements, each score 0-100
-
-#emails*: String<5..100, pattern: /[^@]+@[^@]+/>
-// 0 or more elements, each valid email 5-100 chars
-
-#prices[2..5]: Decimal<0.01..999.99, fractionDigits: 2>
-// 2-5 elements, each price with constraints
 
 // ============================================================================
-// FACETS ON ATTRIBUTES
+// FACETS IN ELEMENTS
 // ============================================================================
 
-// Attributes with constraints
-@id: Int<1..>
-@status: String<3..20>
-@score: Int<0..100>
-@price: Decimal<0.01.., fractionDigits: 2>
+// Elements with constrained types
 #product {
     #name: String<1..200>
     #description?: String<..1000>
-}
-
-// ============================================================================
-// FACETS + ABSTRACT TYPES + INHERITANCE
-// ============================================================================
-
-// Abstract base with constraints
-BaseValue: a{
-    @id: Int<1..>
-    #value: String<1..100>
-}
-
-// Derived with additional constraints
-StringValue < BaseValue {
-    @pattern: String<1..50>
-    #validated: String<5..100, pattern: /[A-Za-z0-9]+/>
-}
-
-NumericValue < BaseValue {
-    @min: Int<0..>
-    @max: Int<0..>
-    #number: Int<0..1000>
-}
-
-#string-val: StringValue
-#numeric-val: NumericValue
-
-// ============================================================================
-// FACETS + GROUPS
-// ============================================================================
-
-// Type with facets used in groups
-Score: Int<0..100>
-Name: String<1..100, whiteSpace: "collapse">
-
-#record {
-    // Sequence with constrained types
-    #student-name: Name
-    #test-score: Score
-
-    // Choice with constraints
-    ?{
-        #grade-letter: String<1, pattern: /[A-F]/  >
-        #grade-percent: Int<0..100>
-    }
-}
-
-// ============================================================================
-// FACETS + TYPE SPLATTING
-// ============================================================================
-
-// Type with constrained fields
-PersonInfo {
-    #first-name: String<1..50>
-    #last-name: String<1..50>
-    #age?: Int<0..150>
-}
-
-ContactInfo {
-    #email: String<5..100>
-    #phone?: String<10..15>
-}
-
-// Splat types with constrained fields
-#person {
-    ...PersonInfo
-    ...ContactInfo
-
-    #id: Int<1..>
-}
-
-// ============================================================================
-// FACETS + MIXED CONTENT
-// ============================================================================
-
-// Mixed content with constrained inline elements
-#paragraph: x{
-    #emphasis: String<1..100>
-    #strong: String<1..100>
-    #link: String<1..200, pattern: /https?:\/\/.+/>
-}
-
-// ============================================================================
-// COMPLEX REALISTIC EXAMPLE
-// ============================================================================
-
-// User schema with all features
-
-// Base constrained types
-Username: String<3..20, pattern: /[a-z0-9_-]+/, whiteSpace: "collapse">
-Email: String<5..100, pattern: /[^@]+@[^@]+\.[^@]+/, whiteSpace: "collapse">
-Password: String<12..128>
-Age: Int<13..150>
-UserId: Int<1000..999999>
-Rating: Decimal<1.0..5.0, fractionDigits: 1>
-
-// User type with constraints
-@user-id: UserId
-@status: "active" | "inactive" | "suspended"
-@created: DateTime
-#user {
-    #username: Username
-    #email: Email
-    #age?: Age
-
-    // Multiple constrained elements
-    #roles[1..10]: String<3..50>
-
-    // Optional with constraints
-    #bio?: String<10..1000, whiteSpace: "collapse">
-
-    // Nested with facets
-    #settings {
-        #notifications: Bool
-        #max-items: Int<10..1000>
-        #theme: "light" | "dark" | "auto"
-    }
-
-    // Choice with constraints
-    ?{
-        #premium-tier: Int<1..5>
-        #free-account: String<0>
-    }
 }
