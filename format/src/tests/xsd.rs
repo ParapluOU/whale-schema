@@ -274,6 +274,12 @@ fn test_xsd_union_mixed() -> Result<()> {
     assert_xsd_matches_expected("union_mixed")
 }
 
+/// Test inline union types (unions without typedef)
+#[test]
+fn test_xsd_inline_unions() -> Result<()> {
+    assert_xsd_matches_expected("inline_unions")
+}
+
 /// Test XSD substitution groups (NOT SUPPORTED)
 #[test]
 #[should_panic(expected = "WHAS does not yet support substitution groups")]

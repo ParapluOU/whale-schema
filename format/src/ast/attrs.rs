@@ -24,6 +24,16 @@ pub struct AttrAssign {
     pub mod_opt: Option<SymbolModOpt>,
 }
 
+/// Attribute typing can be either a union or simple/compound type
+#[derive(Debug, Eq, PartialEq, Clone, FromPest)]
+#[pest_ast(rule(Rule::attr_typing))]
+pub enum AttrTyping {
+    /// Union type: "active" | "inactive"
+    Union(TypeUnion),
+    /// Simple or compound type: String or String + "-" + Int
+    SimpleCompound(SimpleTypingInline),
+}
+
 #[derive(Debug, Eq, PartialEq, Clone, FromPest)]
 #[pest_ast(rule(Rule::attrdef))]
 pub struct AttrDef {
@@ -32,7 +42,7 @@ pub struct AttrDef {
     /// actual assignment tokens
     pub assign: AttrAssign,
     // pub mod_opt: Option<SymbolModOpt>,
-    pub typing: Option<SimpleTypingInline>,
+    pub typing: Option<AttrTyping>,
     // optional comment at the end of the line
     pub comment: Option<CommentLine>,
 }

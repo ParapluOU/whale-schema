@@ -11,15 +11,15 @@
         <xs:element name="name" minOccurs="1" maxOccurs="1">
           <xs:simpleType>
             <xs:restriction base="xs:string">
-            <xs:minLength value="1"/>
-            <xs:maxLength value="200"/>
+              <xs:minLength value="1"/>
+              <xs:maxLength value="200"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:element>
         <xs:element name="description" minOccurs="0" maxOccurs="1">
           <xs:simpleType>
             <xs:restriction base="xs:string">
-            <xs:maxLength value="1000"/>
+              <xs:maxLength value="1000"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:element>
@@ -32,16 +32,16 @@
         <xs:element name="student-name" minOccurs="1" maxOccurs="1">
           <xs:simpleType>
             <xs:restriction base="xs:string">
-            <xs:minLength value="1"/>
-            <xs:maxLength value="100"/>
+              <xs:minLength value="1"/>
+              <xs:maxLength value="100"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:element>
         <xs:element name="test-score" minOccurs="1" maxOccurs="1">
           <xs:simpleType>
             <xs:restriction base="xs:integer">
-            <xs:minInclusive value="0"/>
-            <xs:maxInclusive value="100"/>
+              <xs:minInclusive value="0"/>
+              <xs:maxInclusive value="100"/>
             </xs:restriction>
           </xs:simpleType>
         </xs:element>
@@ -49,16 +49,16 @@
           <xs:element name="grade-letter" minOccurs="1" maxOccurs="1">
             <xs:simpleType>
               <xs:restriction base="xs:string">
-              <xs:length value="1"/>
-              <xs:pattern value="[A-F]"/>
+                <xs:length value="1"/>
+                <xs:pattern value="[A-F]"/>
               </xs:restriction>
             </xs:simpleType>
           </xs:element>
           <xs:element name="grade-percent" minOccurs="1" maxOccurs="1">
             <xs:simpleType>
               <xs:restriction base="xs:integer">
-              <xs:minInclusive value="0"/>
-              <xs:maxInclusive value="100"/>
+                <xs:minInclusive value="0"/>
+                <xs:maxInclusive value="100"/>
               </xs:restriction>
             </xs:simpleType>
           </xs:element>
@@ -69,4 +69,3 @@
   <xs:element name="scores" minOccurs="1" maxOccurs="unbounded" type="xs:integer"/>
   <xs:element name="usernames" minOccurs="0" maxOccurs="50" type="xs:string"/>
 </xs:schema>
-

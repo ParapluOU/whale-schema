@@ -281,22 +281,47 @@ impl XsdExporter {
             xsd.push_str("    </xs:complexType>\n");
             xsd.push_str("  </xs:element>\n");
         } else if let model::TypeRef::Simple(simple_ref) = element.typing() {
-            let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
+            let simple_type = simple_ref.resolve(schema);
+
+            // Check if this is an anonymous union (inline union)
+            let is_anonymous_union = matches!(simple_type, model::SimpleType::Union { .. }) &&
+                                     schema.get_type_name_for_simpletype(simple_ref).is_none();
 
             // Simple type with attributes (simpleContent)
             if has_attrs {
                 xsd.push_str(">\n");
                 xsd.push_str("    <xs:complexType>\n");
                 xsd.push_str("      <xs:simpleContent>\n");
-                xsd.push_str(&format!("        <xs:extension base=\"{}\">\n", type_name));
-                xsd.push_str(&self.export_attributes(&attrs, schema, 5)?);
-                xsd.push_str("        </xs:extension>\n");
+
+                if is_anonymous_union {
+                    // For anonymous unions with attributes, we need to define the union inline
+                    // Use xs:restriction with an inline simpleType
+                    xsd.push_str("        <xs:restriction>\n");
+                    xsd.push_str(&self.export_simple_type_inline(simple_type, schema, 5)?);
+                    xsd.push_str(&self.export_attributes(&attrs, schema, 5)?);
+                    xsd.push_str("        </xs:restriction>\n");
+                } else {
+                    // Named type - use extension
+                    let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
+                    xsd.push_str(&format!("        <xs:extension base=\"{}\">\n", type_name));
+                    xsd.push_str(&self.export_attributes(&attrs, schema, 5)?);
+                    xsd.push_str("        </xs:extension>\n");
+                }
+
                 xsd.push_str("      </xs:simpleContent>\n");
                 xsd.push_str("    </xs:complexType>\n");
                 xsd.push_str("  </xs:element>\n");
             } else {
                 // Simple type without attributes
-                xsd.push_str(&format!(" type=\"{}\"/>\n", type_name));
+                if is_anonymous_union {
+                    // Export inline union
+                    xsd.push_str(">\n");
+                    xsd.push_str(&self.export_simple_type_inline(simple_type, schema, 2)?);
+                    xsd.push_str("  </xs:element>\n");
+                } else {
+                    let type_name = self.get_simple_type_xsd_name(simple_ref, schema);
+                    xsd.push_str(&format!(" type=\"{}\"/>\n", type_name));
+                }
             }
         } else if has_attrs {
             // Attributes only (empty content)
@@ -331,15 +356,26 @@ impl XsdExporter {
 
             // Type - attr.typing is directly a Ref<SimpleType>
             let attr_type = attr.typing.resolve(schema);
-            let type_name = attr_type.to_type_name(schema);
-            xsd.push_str(&format!(" type=\"xs:{}\"", self.map_primitive_to_xsd(&type_name)));
 
-            // Required/optional (use="required" vs use="optional")
-            if *attr.required() {
-                xsd.push_str(" use=\"required\"");
-            } // Optional is the default, no need to specify
+            // Check if this is an anonymous union type (inline union)
+            if matches!(attr_type, model::SimpleType::Union { .. }) &&
+               schema.get_type_name_for_simpletype(&attr.typing).is_none() {
+                // Anonymous inline union - export inline
+                xsd.push_str(">\n");
+                xsd.push_str(&self.export_simple_type_inline(attr_type, schema, indent_level + 1)?);
+                xsd.push_str(&format!("{}</xs:attribute>\n", indent));
+            } else {
+                // Named type or non-union - use type reference
+                let type_name = self.get_simple_type_xsd_name(&attr.typing, schema);
+                xsd.push_str(&format!(" type=\"{}\"", type_name));
 
-            xsd.push_str("/>\n");
+                // Required/optional (use="required" vs use="optional")
+                if *attr.required() {
+                    xsd.push_str(" use=\"required\"");
+                } // Optional is the default, no need to specify
+
+                xsd.push_str("/>\n");
+            }
         }
 
         Ok(xsd)
@@ -368,23 +404,12 @@ impl XsdExporter {
         if let model::TypeRef::Simple(simple_ref) = element.typing() {
             let simple_type = simple_ref.resolve(schema);
 
-            // Check if this is an anonymous type with restrictions (inline facets)
-            if schema.get_type_name_for_simpletype(simple_ref).is_none() && simple_type.is_derived() {
+            // Check if this is an anonymous type (inline facets or inline unions)
+            if schema.get_type_name_for_simpletype(simple_ref).is_none() &&
+               (simple_type.is_derived() || matches!(simple_type, model::SimpleType::Union { .. })) {
                 // Export as anonymous inline simpleType
                 xsd.push_str(">\n");
-                xsd.push_str(&format!("{}  <xs:simpleType>\n", indent));
-
-                if let model::SimpleType::Derived { base, restrictions, .. } = simple_type {
-                    let base_name = base.resolve(schema).to_type_name(schema);
-                    xsd.push_str(&format!("{}    <xs:restriction base=\"xs:{}\">\n", indent,
-                        self.map_primitive_to_xsd(&base_name)));
-
-                    xsd.push_str(&self.export_restrictions(restrictions, indent_level + 2)?);
-
-                    xsd.push_str(&format!("{}    </xs:restriction>\n", indent));
-                }
-
-                xsd.push_str(&format!("{}  </xs:simpleType>\n", indent));
+                xsd.push_str(&self.export_simple_type_inline(simple_type, schema, indent_level + 1)?);
                 xsd.push_str(&format!("{}</xs:element>\n", indent));
             } else {
                 // Named type reference
@@ -401,6 +426,55 @@ impl XsdExporter {
         } else {
             xsd.push_str("/>\n");
         }
+
+        Ok(xsd)
+    }
+
+    /// Export an inline anonymous simpleType (for inline facets or inline unions)
+    fn export_simple_type_inline(
+        &self,
+        simple_type: &model::SimpleType,
+        schema: &model::Schema,
+        indent_level: usize,
+    ) -> Result<String> {
+        let mut xsd = String::new();
+        let indent = "  ".repeat(indent_level);
+
+        xsd.push_str(&format!("{}<xs:simpleType>\n", indent));
+
+        match simple_type {
+            model::SimpleType::Derived { base, restrictions, .. } => {
+                let base_name = base.resolve(schema).to_type_name(schema);
+                xsd.push_str(&format!("{}  <xs:restriction base=\"xs:{}\">\n", indent,
+                    self.map_primitive_to_xsd(&base_name)));
+
+                xsd.push_str(&self.export_restrictions(restrictions, indent_level + 2)?);
+
+                xsd.push_str(&format!("{}  </xs:restriction>\n", indent));
+            }
+            model::SimpleType::Union { member_types } => {
+                xsd.push_str(&format!("{}  <xs:union memberTypes=\"", indent));
+                let members: Vec<String> = member_types
+                    .iter()
+                    .map(|t| {
+                        let type_name = self.get_simple_type_xsd_name(t, schema);
+                        // Only add xs: prefix if not already present
+                        if type_name.starts_with("xs:") {
+                            type_name
+                        } else {
+                            format!("xs:{}", self.map_primitive_to_xsd(&type_name))
+                        }
+                    })
+                    .collect();
+                xsd.push_str(&members.join(" "));
+                xsd.push_str("\"/>\n");
+            }
+            _ => {
+                // Shouldn't happen for inline types, but handle gracefully
+            }
+        }
+
+        xsd.push_str(&format!("{}</xs:simpleType>\n", indent));
 
         Ok(xsd)
     }
@@ -477,13 +551,20 @@ impl XsdExporter {
     /// Get the XSD type name for a simple type reference
     /// Checks if the type has a custom name in the schema, otherwise returns the primitive type name
     fn get_simple_type_xsd_name(&self, simple_ref: &model::Ref<model::SimpleType>, schema: &model::Schema) -> String {
-        // First check if this type has a custom name (like "FlexibleId")
+        let simple_type = simple_ref.resolve(schema);
+
+        // Check if this is a builtin - builtins always use xs: prefix even if registered in schema
+        if simple_type.is_builtin() {
+            let base_name = simple_type.to_type_name(schema);
+            return format!("xs:{}", self.map_primitive_to_xsd(&base_name));
+        }
+
+        // Check if this type has a custom name (like "FlexibleId")
         if let Some(custom_name) = schema.get_type_name_for_simpletype(simple_ref) {
             return custom_name;
         }
 
         // Otherwise, get the primitive base type and map to XSD
-        let simple_type = simple_ref.resolve(schema);
         let base_name = simple_type.to_type_name(schema);
         format!("xs:{}", self.map_primitive_to_xsd(&base_name))
     }

@@ -316,6 +316,8 @@ pub fn compile_typing(
     schema: &mut Schema,
 ) -> anyhow::Result<model::TypeRef> {
     match element_ast {
+        // Union type: Int | String | "literal"
+        Typing::Union(union) => compile_type_union(source, union, schema),
         Typing::Typename(typename) => compile_typename(source, typename, schema),
         // the contents of an
         Typing::Regex(regexty) => Ok(schema
@@ -600,8 +602,8 @@ pub fn compile_element_attributes(
                 // typedef.attributes() ...
             }
 
-            // TypeRegex has no attributes
-            Typing::Regex(_) => {}
+            // Union types and TypeRegex have no attributes (simple types)
+            Typing::Union(_) | Typing::Regex(_) => {}
         },
 
         // alternatively the element could have an attached inline block
@@ -724,9 +726,15 @@ pub fn parse_attribute(
         .required(attr.is_required())
         .typing(match &attr.typing {
             None => schema.register_simple_type(default())?, // String by default
-            Some(typing) => match parse_type_from_inline(source, typing, schema)? {
-                TypeRef::Simple(simpletype) => simpletype,
-                TypeRef::Group(_) => Err(anyhow!("group Type not supported for Attribute"))?,
+            Some(typing) => {
+                let type_ref = match typing {
+                    ast::AttrTyping::Union(union) => compile_type_union(source, union, schema)?,
+                    ast::AttrTyping::SimpleCompound(simple) => parse_type_from_inline(source, simple, schema)?,
+                };
+                match type_ref {
+                    TypeRef::Simple(simpletype) => simpletype,
+                    TypeRef::Group(_) => Err(anyhow!("group Type not supported for Attribute"))?,
+                }
             },
         });
 

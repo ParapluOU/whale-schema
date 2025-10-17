@@ -1,0 +1,48 @@
+// Test inline union types in elements and attributes
+// This tests the new feature allowing unions without typedef
+
+// ============================================================================
+// INLINE UNIONS IN ELEMENTS
+// ============================================================================
+
+// Simple literal union
+#status: "active" | "inactive" | "suspended"
+
+// Type union with primitives
+#flexible-id: Int | String
+
+// Mixed union with literals and types
+#size: Int<1..100> | "auto" | "inherit"
+
+// Union with faceted types
+#identifier: Int<1000..9999> | String<5..20>
+
+// ============================================================================
+// INLINE UNIONS IN ATTRIBUTES
+// ============================================================================
+
+// Attribute with literal union
+@align: "left" | "center" | "right"
+@display: "block" | "inline" | "none"
+#div {
+    #content: String
+}
+
+// Attribute with type union
+@width: Int<1..> | "auto"
+@height: Int<1..> | "auto"
+#box {
+    #text: String
+}
+
+// ============================================================================
+// MIXED USAGE
+// ============================================================================
+
+// Element with attributes that have inline unions
+@status: "enabled" | "disabled"
+@mode: "light" | "dark" | "auto"
+#widget {
+    #type: "button" | "input" | "select"
+    #label: String
+}

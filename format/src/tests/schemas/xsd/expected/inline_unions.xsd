@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="box" minOccurs="1" maxOccurs="1">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="text" minOccurs="1" maxOccurs="1" type="xs:string"/>
+      </xs:sequence>
+      <xs:attribute name="height">
+        <xs:simpleType>
+          <xs:union memberTypes="xs:integer xs:string"/>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="width">
+        <xs:simpleType>
+          <xs:union memberTypes="xs:integer xs:string"/>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="div" minOccurs="1" maxOccurs="1">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="content" minOccurs="1" maxOccurs="1" type="xs:string"/>
+      </xs:sequence>
+      <xs:attribute name="align">
+        <xs:simpleType>
+          <xs:union memberTypes="xs:string xs:string xs:string"/>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="display">
+        <xs:simpleType>
+          <xs:union memberTypes="xs:string xs:string xs:string"/>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="flexible-id" minOccurs="1" maxOccurs="1">
+    <xs:simpleType>
+      <xs:union memberTypes="xs:integer xs:string"/>
+    </xs:simpleType>
+  </xs:element>
+  <xs:element name="identifier" minOccurs="1" maxOccurs="1">
+    <xs:simpleType>
+      <xs:union memberTypes="xs:integer xs:string"/>
+    </xs:simpleType>
+  </xs:element>
+  <xs:element name="size" minOccurs="1" maxOccurs="1">
+    <xs:simpleType>
+      <xs:union memberTypes="xs:integer xs:string xs:string"/>
+    </xs:simpleType>
+  </xs:element>
+  <xs:element name="status" minOccurs="1" maxOccurs="1">
+    <xs:simpleType>
+      <xs:union memberTypes="xs:string xs:string xs:string"/>
+    </xs:simpleType>
+  </xs:element>
+  <xs:element name="widget" minOccurs="1" maxOccurs="1">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="type" minOccurs="1" maxOccurs="1">
+          <xs:simpleType>
+            <xs:union memberTypes="xs:string xs:string xs:string"/>
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="label" minOccurs="1" maxOccurs="1" type="xs:string"/>
+      </xs:sequence>
+      <xs:attribute name="mode">
+        <xs:simpleType>
+          <xs:union memberTypes="xs:string xs:string xs:string"/>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="status">
+        <xs:simpleType>
+          <xs:union memberTypes="xs:string xs:string"/>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

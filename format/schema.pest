@@ -159,9 +159,12 @@ element_with_block = { element_assign ~ sym_typing_assign? ~ block }
 
 attributes = { attrdef* }
 
-// the type definition of an attribute value type can only be a regex, or a
-// primitive, OR a block that allows defining a composite of primitives
-attrdef = { comment* ~ attr_assign ~ (sym_typing_assign ~ simple_compound_inline)? ~ comment_line? }
+// Attribute typing: either union or compound/simple
+attr_typing = { type_union | simple_compound_inline }
+
+// the type definition of an attribute value type supports unions, compounds, or simple types
+// Note: type_union must come first as it contains the same items as simple_compound_inline
+attrdef = { comment* ~ attr_assign ~ (sym_typing_assign ~ attr_typing)? ~ comment_line? }
 
 // @attr?
 attr_assign = { ident_attr ~ sym_mod_opt? }
@@ -195,8 +198,9 @@ type_simple = { primitive | type_regex | simple_compound_inline }
 typename = { typename_base ~ facets? }
 typename_base = { type_with_generic | type_without_generic }
 
-// the typename in element declarations can include a Regex definition
-typing = { typename | type_regex | typevar }
+// the typename in element declarations can include unions, regex, and typevars
+// Note: type_union must come first as it contains typenames
+typing = { type_union | typename | type_regex | typevar }
 
 // Type(Arg (, Arg))
 type_with_generic = { ident_type_nonprimitive ~ type_args }

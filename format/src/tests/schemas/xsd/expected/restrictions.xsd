@@ -5,5 +5,5 @@
       <xs:pattern value="active|inactive|pending"/>
     </xs:restriction>
   </xs:simpleType>
-  <xs:element name="status" minOccurs="1" maxOccurs="1" type="xs:string"/>
+  <xs:element name="status" minOccurs="1" maxOccurs="1" type="StatusType"/>
 </xs:schema>

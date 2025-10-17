@@ -34,6 +34,8 @@ impl SimpleTypingInline {
 #[derive(Debug, Eq, PartialEq, Clone, FromPest)]
 #[pest_ast(rule(Rule::typing))]
 pub enum Typing {
+    /// union of multiple types (Int | String | "literal")
+    Union(TypeUnion),
     /// type is a real type with possible generics and stuff
     Typename(TypeName),
     /// text-only element value
