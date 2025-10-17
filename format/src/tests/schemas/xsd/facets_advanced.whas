@@ -22,6 +22,22 @@ FlexibleId: Int<1..999999> | String<5..50>
 #scores+: Int<0..100>
 
 // ============================================================================
+// FACETS + CHOICE BLOCKS
+// ============================================================================
+
+// Inline choice block with faceted types
+#record {
+    #student-name: String<1..100>
+    #test-score: Int<0..100>
+
+    // Inline choice with constraints
+    ...?{
+        #grade-letter: String<1, pattern: /[A-F]/>
+        #grade-percent: Int<0..100>
+    }
+}
+
+// ============================================================================
 // FACETS IN ELEMENTS
 // ============================================================================
 
